@@ -1,0 +1,23 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/fomi_stock
+    username: fomi
+    password: fomi123
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          time_zone: Africa/Bujumbura
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+logging:
+  level:
+    bi.fomi.stock: DEBUG
+    org.springframework.security: INFO
