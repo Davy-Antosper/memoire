@@ -35,3 +35,30 @@ SÉCURITÉ : token GitHub exposé dans fomi.txt — utilisateur doit le révoque
 - Corriger les incohérences du cahier des charges.
 - Rédiger le mémoire complet (~100 pages).
 - Générer le PDF (pandoc/LaTeX ou weasyprint).
+
+## Mise à jour du 01/11/2026 — rapport de stage au format canevas
+- Espace de travail réel : `C:\Users\BOBO SIMON AKIDZ\Desktop\memoire` (Windows, Python 3.12, python-docx 1.2.0).
+- Le canevas du professeur est `CANEVAS POUR LA REDACTION DU RAPPORT DE STAGE.docx`.
+- Le rapport conforme au canevas est `Rapport_stage_FOMI_canevas.docx`.
+- Chaîne de génération reproductible : `python build_rapport.py`
+  1. `canevas_restructure.py` : restructure `memoire_fomi_stock.docx` selon le canevas ;
+  2. `canevas_fixfacts.py` : aligne les faits techniques sur l'API réelle (207 tests, 25 besoins, 22 règles, 16 tables, 11 migrations, FIFO par date de réception FOMI) ;
+  3. `canevas_finalize.py` : renumérote figures/tableaux (I.x, II.x, III.x), les sous-sections II.1.5.x, corrige les renvois et synchronise l'annexe A avec le code réel de `fomi-stock-api`.
+- Vérifications effectuées : 207 tests (`@Test`), 60 endpoints, 17 contrôleurs, 11 migrations ; API UP sur 8080, web sur 5173.
+- Diagrammes corrigés dans `generate_memoire.py` puis régénérés avec matplotlib 3.11.2 :
+  - `OUT_DIR` local vers `memoire_assets` ;
+  - 203 → 207 tests, 15 → 16 repositories, « Index GIN » → index B-tree/composites ;
+  - machine à états redessinée : état initial `EN_ATTENTE_DE_VALIDATION`, 10 états, transitions ACTIF/REJETE/PARTIEL/SERVI/ANNULE/EXPIRE, états hérités PAYE/EN_ATTENTE/RECLAMATION ;
+  - `distribuerFifo()` → `distribuer()`, FIFO précisé par `dateReceptionFomi` + exclusion des lots périmés, décision du flowchart complétée (ACTIF, PARTIEL, PAYE ou EN_ATTENTE).
+- `canevas_finalize.py` réinsère l'image manquante de la Figure I.1 (circuit de distribution) et synchronise les 14 figures du rapport avec les PNG de `memoire_assets` (les images sont embarquées dans le DOCX, pas liées).
+- Dernier build : 752 paragraphes, 20 tableaux, 15 images (page de garde + 14 figures). Aucun « 203 », « 15 repositories », « Index GIN » ni « distribuerFifo » restant.
+## Mise à jour du 02/11/2026 — notifications email des agriculteurs
+- Colonne `email` (VARCHAR 150, unique insensible à la casse via index `LOWER(email)`) ajoutée par `V12__agriculteur_email.sql`, avec 5 adresses de démonstration (`jean.ndayisaba@example.bi`, etc.).
+- Backend : `spring-boot-starter-mail`, `MailSenderPort` + `SmtpMailSender`, `EmailNotificationService` (tolérant aux pannes : `EMAIL_SEND` / `EMAIL_FAILED` dans l'audit, jamais bloquant).
+- Déclencheurs automatiques : `TICKET_CREE`, `TICKET_VALIDE`, `TICKET_REJETE`, `TICKET_EXPIRE`, `DISTRIBUTION`. Envoi manuel : `POST /api/agriculteurs/{id}/notifier`.
+- Envoi désactivé par défaut (`fomi.mail.enabled=false`) ; activer avec `FOMI_MAIL_ENABLED=true` et un SMTP (`MAIL_HOST`/`MAIL_PORT`, Mailpit/MailHog en local sur 1025).
+- `management.health.mail.enabled=false` : un SMTP injoignable ne fait plus passer `/actuator/health` en DOWN (sinon 503).
+- Front : champ email, colonne email, bouton « Notifier » et formulaire d'envoi dans `Agriculteurs.jsx` ; `npm run build` OK.
+- Tests : `BaseIntegrationTest` accepte une base PostgreSQL locale sans Docker (`mvn test -Dfomi.test.localdb=true`, base `fomi_test`) ; `StockConcurrenceIntegrationTest` réutilise la même configuration.
+
+- Page de garde validée le 01/11/2026 : **Université du Lac Tanganyika**, Faculté d'Informatique – Département de Génie Logiciel, deux auteurs (Ishimwe Antosper Davy et Itangiteka Dickson Polland), sous la direction de Prof. Mme Providence, année académique 2025-2026. Le rapport et `memoire_fomi_stock.docx` portent déjà cette page de garde ; aucune mention « Université du Burundi », d'auteur unique ni de formulation au singulier ne subsiste.

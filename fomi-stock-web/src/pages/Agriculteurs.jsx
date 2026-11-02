@@ -12,11 +12,15 @@ export default function Agriculteurs() {
   const [telephone, setTelephone] = useState('')
   const [page, setPage] = useState(0)
   const [showCreate, setShowCreate] = useState(false)
+  const [notifyFor, setNotifyFor] = useState(null)
+  const [notifyForm, setNotifyForm] = useState({ sujet: '', message: '' })
+  const [notifyError, setNotifyError] = useState('')
   const [form, set, setAll, reset] = useForm({
     numeroIdentite: '',
     nom: '',
     prenom: '',
     telephone: '',
+    email: '',
     collineId: null,
     estCooperative: false
   })
@@ -59,6 +63,19 @@ export default function Agriculteurs() {
     if (id) api.get(`/api/zones/${id}/collines`).then((r) => setCollines(r.data)).catch(() => {})
   }
 
+  async function notify(e) {
+    e.preventDefault()
+    setNotifyError('')
+    try {
+      await api.post(`/api/agriculteurs/${notifyFor.id}/notifier`, notifyForm)
+      setMsg(`Email envoyé à ${notifyFor.email}`)
+      setNotifyFor(null)
+      setNotifyForm({ sujet: '', message: '' })
+    } catch (err) {
+      setNotifyError(errorMessage(err))
+    }
+  }
+
   async function create(e) {
     e.preventDefault()
     setMsg('')
@@ -68,6 +85,7 @@ export default function Agriculteurs() {
         nom: form.nom,
         prenom: form.prenom,
         telephone: form.telephone || undefined,
+        email: form.email || undefined,
         collineId: Number(form.collineId),
         estCooperative: Boolean(form.estCooperative)
       }
@@ -102,6 +120,25 @@ export default function Agriculteurs() {
         <button className="btn outline" onClick={resetList}>Tout afficher</button>
       </div>
 
+      {notifyFor && (
+        <form className="card" onSubmit={notify}>
+          <h2>Notifier {notifyFor.prenom} {notifyFor.nom} — {notifyFor.email}</h2>
+          <ErrorBox message={notifyError} />
+          <div className="form-grid">
+            <Field label="Sujet">
+              <input value={notifyForm.sujet} onChange={(e) => setNotifyForm((f) => ({ ...f, sujet: e.target.value }))} placeholder="Votre ticket FOMI" required />
+            </Field>
+            <Field label="Message">
+              <textarea rows={5} value={notifyForm.message} onChange={(e) => setNotifyForm((f) => ({ ...f, message: e.target.value }))} placeholder="Bonjour, votre engrais est disponible au dépôt..." required />
+            </Field>
+          </div>
+          <div className="row">
+            <button className="btn">Envoyer l'email</button>
+            <button type="button" className="btn outline" onClick={() => setNotifyFor(null)}>Annuler</button>
+          </div>
+        </form>
+      )}
+
       {showCreate && (
         <form className="card" onSubmit={create}>
           <h2>Nouvel agriculteur</h2>
@@ -117,6 +154,9 @@ export default function Agriculteurs() {
             </Field>
             <Field label="Téléphone">
               <input value={form.telephone} onChange={set('telephone')} placeholder="79xxxxxxx" />
+            </Field>
+            <Field label="Email">
+              <input type="email" value={form.email} onChange={set('email')} placeholder="agriculteur@example.bi" />
             </Field>
             <Field label="Province">
               <select value={form.provinceId || ''} onChange={(e) => onProvince(e.target.value)}>
@@ -148,17 +188,23 @@ export default function Agriculteurs() {
       <div className="card">
         <table>
           <thead>
-            <tr><th>Identité</th><th>Nom</th><th>Téléphone</th><th>Colline</th><th>Type</th></tr>
+            <tr><th>Identité</th><th>Nom</th><th>Téléphone</th><th>Email</th><th>Colline</th><th>Type</th><th></th></tr>
           </thead>
           <tbody>
-            {list.length === 0 && <tr><td colSpan={5}><Empty /></td></tr>}
+            {list.length === 0 && <tr><td colSpan={7}><Empty /></td></tr>}
             {list.map((a) => (
               <tr key={a.id}>
                 <td><strong>{a.numeroIdentite}</strong></td>
                 <td>{a.nom} {a.prenom}</td>
                 <td>{a.telephone}</td>
+                <td>{a.email || '—'}</td>
                 <td>{a.collineNom}</td>
                 <td>{a.estCooperative ? 'Coopérative' : 'Individuel'}</td>
+                <td>
+                  <button className="btn outline" disabled={!a.email} onClick={() => { setNotifyFor(a); setNotifyForm({ sujet: '', message: '' }); setNotifyError('') }}>
+                    Notifier
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>

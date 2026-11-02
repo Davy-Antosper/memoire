@@ -11,7 +11,6 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-import org.testcontainers.containers.PostgreSQLContainer;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,13 +27,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 @AutoConfigureMockMvc
 class StockConcurrenceIntegrationTest {
 
-    static final PostgreSQLContainer<?> POSTGRES = BaseIntegrationTest.POSTGRES;
-
     @DynamicPropertySource
     static void properties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
-        registry.add("spring.datasource.username", POSTGRES::getUsername);
-        registry.add("spring.datasource.password", POSTGRES::getPassword);
+        BaseIntegrationTest.properties(registry);
     }
 
     @Autowired

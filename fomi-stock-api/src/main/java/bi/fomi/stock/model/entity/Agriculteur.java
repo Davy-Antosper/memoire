@@ -30,6 +30,9 @@ public class Agriculteur {
     @Column(length = 20)
     private String telephone;
 
+    @Column(length = 150)
+    private String email;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "colline_id", nullable = false)
     private Colline colline;

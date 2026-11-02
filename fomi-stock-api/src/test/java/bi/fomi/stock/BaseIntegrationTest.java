@@ -30,22 +30,42 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 @Transactional
 public abstract class BaseIntegrationTest {
 
-    static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>(
+    /**
+     * Par défaut les tests démarrent un conteneur PostgreSQL (Testcontainers).
+     * En l'absence de Docker, il est possible de pointer vers une base locale
+     * déjà créée avec {@code -Dfomi.test.localdb=true} ou
+     * {@code FOMI_TEST_LOCALDB=true}, en surchargeant au besoin
+     * {@code fomi.test.db.url}, {@code fomi.test.db.username} et
+     * {@code fomi.test.db.password}.
+     */
+    static final boolean LOCAL_DB = Boolean.getBoolean("fomi.test.localdb")
+            || "true".equalsIgnoreCase(System.getenv("FOMI_TEST_LOCALDB"));
+
+    static final PostgreSQLContainer<?> POSTGRES = LOCAL_DB ? null : new PostgreSQLContainer<>(
             DockerImageName.parse("postgres:16-alpine"))
             .withDatabaseName("fomi_test")
             .withUsername("fomi")
             .withPassword("fomi123");
 
     static {
-        POSTGRES.start();
-        Runtime.getRuntime().addShutdownHook(new Thread(POSTGRES::stop));
+        if (POSTGRES != null) {
+            POSTGRES.start();
+            Runtime.getRuntime().addShutdownHook(new Thread(POSTGRES::stop));
+        }
     }
 
     @DynamicPropertySource
     static void properties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
-        registry.add("spring.datasource.username", POSTGRES::getUsername);
-        registry.add("spring.datasource.password", POSTGRES::getPassword);
+        if (POSTGRES == null) {
+            registry.add("spring.datasource.url", () -> System.getProperty("fomi.test.db.url",
+                    "jdbc:postgresql://localhost:5432/fomi_test"));
+            registry.add("spring.datasource.username", () -> System.getProperty("fomi.test.db.username", "fomi"));
+            registry.add("spring.datasource.password", () -> System.getProperty("fomi.test.db.password", "fomi123"));
+        } else {
+            registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
+            registry.add("spring.datasource.username", POSTGRES::getUsername);
+            registry.add("spring.datasource.password", POSTGRES::getPassword);
+        }
     }
 
     @Autowired

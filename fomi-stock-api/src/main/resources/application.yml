@@ -3,9 +3,27 @@ spring:
     name: fomi-stock-api
   profiles:
     active: dev
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: ${MAIL_SMTP_AUTH:false}
+      mail.smtp.starttls.enable: ${MAIL_SMTP_STARTTLS:false}
+      mail.smtp.connectiontimeout: 5000
+      mail.smtp.timeout: 5000
+      mail.smtp.writetimeout: 5000
 
 server:
   port: 8080
+
+# Le SMTP est optionnel : une boîte mail injoignable ne doit pas faire
+# basculer /actuator/health en DOWN (et donc l'API en 503).
+management:
+  health:
+    mail:
+      enabled: false
 
 springdoc:
   api-docs:
@@ -19,3 +37,7 @@ fomi:
   jwt:
     secret: ${JWT_SECRET:ChangeMeInProductionUseAtLeast256BitsSecretKeyForFOMI2026!}
     expiration-ms: 86400000
+  mail:
+    enabled: ${FOMI_MAIL_ENABLED:false}
+    from: ${FOMI_MAIL_FROM:no-reply@fomi.bi}
+    sujet-prefix: "${FOMI_MAIL_SUJET_PREFIX:[FOMI-Stock] }"

@@ -12,4 +12,8 @@ public interface AgriculteurRepository extends JpaRepository<Agriculteur, Long> 
     List<Agriculteur> findByTelephone(String telephone);
 
     boolean existsByTelephone(String telephone);
+
+    boolean existsByEmailIgnoreCase(String email);
+
+    List<Agriculteur> findByEmailIgnoreCase(String email);
 }

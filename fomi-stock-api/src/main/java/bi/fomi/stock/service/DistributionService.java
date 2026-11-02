@@ -35,6 +35,7 @@ public class DistributionService {
     private final StockService stockService;
     private final AlerteService alerteService;
     private final AuditLogService auditLogService;
+    private final EmailNotificationService emailNotificationService;
 
     @Transactional
     public List<DistributionResponse> distribuer(DistributionRequest req, Utilisateur agent) {
@@ -96,6 +97,12 @@ public class DistributionService {
         auditLogService.log("DISTRIBUTION_CREATE", "Ticket", ticket.getId(),
                 "{\"depot\":\"" + depot.getCode() + "\",\"quantite\":" + req.quantite() + ",\"reste\":"
                         + ticket.getQuantiteRestante() + "}");
+        String precision = "Distribution de " + req.quantite() + " kg effectuée au dépôt "
+                + depot.getCode() + ". "
+                + (ticket.getStatut() == StatutTicket.SERVI
+                        ? "Votre ticket est entièrement servi."
+                        : "Il vous reste " + ticket.getQuantiteRestante() + " kg à retirer.");
+        emailNotificationService.notifierTicket(ticket, "DISTRIBUTION", precision);
         return reponses;
     }
 

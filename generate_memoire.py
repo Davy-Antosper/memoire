@@ -5,6 +5,7 @@ Génère les diagrammes PNG puis le document DOCX (~100 pages)
 """
 
 import os
+import textwrap
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -12,7 +13,7 @@ import matplotlib.patches as mpatches
 from matplotlib.patches import FancyBboxPatch, FancyArrowPatch, Ellipse
 import numpy as np
 
-OUT_DIR = "/home/antbeat/projects/memoire_assets"
+OUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "memoire_assets")
 os.makedirs(OUT_DIR, exist_ok=True)
 
 # ============================================================
@@ -60,7 +61,7 @@ def draw_architecture():
 
     # Security Layer
     box(4, 5.0, 6, 0.9, 'Sécurité : Spring Security + JWT + RBAC\n5 rôles : ADMIN | SUPERVISEUR | AGENT_ZONE | AGENT_COLLINE | AGENT_LOGISTIQUE',
-        '#FFECB3', '#FF8F00', 9, True)
+        '#FFECB3', '#FF8F00', 7.5, True)
 
     # Service Layer
     box(0.5, 3.2, 13, 1.5, '', '#F3E5F5', '#7B1FA2')
@@ -69,19 +70,19 @@ def draw_architecture():
     svc_items = ['DistributionService\n(FIFO)', 'MouvementService\n(Annulation)',
                  'TicketService\n(Quotas/R6)', 'AlerteService\n(Cron 06h00)',
                  'StockService\n(Gestion FIFO)', 'StatsService\n(Requêtes JPQL)',
-                 'AuditLogService\n(Traçabilité)']
+                 'AuditLogService\n(Traçabilité)', 'EmailNotification\n(SMTP)']
     for i, item in enumerate(svc_items):
-        x = 0.8 + i * 1.85
-        box(x, 3.35, 1.6, 1.0, item, '#E1BEE7', '#9C27B0', 7)
+        x = 0.6 + i * 1.6
+        box(x, 3.35, 1.45, 1.0, item, '#E1BEE7', '#9C27B0', 6.5)
 
     # Repository Layer
-    box(1, 2.0, 12, 0.9, 'Couche Repository - Spring Data JPA (15 repositories)\nPessimistic locking (SELECT FOR UPDATE) + Requêtes JPQL dynamiques',
+    box(1, 2.0, 12, 0.9, 'Couche Repository - Spring Data JPA (16 repositories)\nPessimistic locking (SELECT FOR UPDATE) + Requêtes JPQL dynamiques',
         '#E0F7FA', '#00838F', 10, True)
 
     # Data Layer
-    box(1, 0.3, 5.5, 1.4, 'PostgreSQL 16\n16 tables | Enums nommés\nFlyway (11 migrations)\nJSONB pour audit logs',
+    box(1, 0.3, 5.5, 1.4, 'PostgreSQL 16\n16 tables | Enums nommés\nFlyway (12 migrations)\nJSONB pour audit logs',
         '#FCE4EC', '#C62828', 10, True)
-    box(7.5, 0.3, 5.5, 1.4, 'Testcontainers\n(Tests d\'intégration)\nJUnit 5 + Mockito\n203 tests automatisés',
+    box(7.5, 0.3, 5.5, 1.4, 'Tests automatisés\nTestcontainers + PostgreSQL\nJUnit 5 + Mockito\n215 tests (dont notifications)',
         '#E8EAF6', '#283593', 10, True)
 
     # Arrows
@@ -100,73 +101,150 @@ def draw_architecture():
 # 2. DIAGRAMME ENTITÉ-RELATION (ER)
 # ============================================================
 def draw_er_diagram():
-    fig, ax = plt.subplots(1, 1, figsize=(20, 16))
-    ax.set_xlim(0, 20)
-    ax.set_ylim(0, 16)
+    """ER diagramme : colonnes empilées sans chevauchement, relations orthogonales.
+
+    Les versions précédentes plaçaient les entités à des ordonnées fixes, ce qui
+    faisait chevaucher les boîtes hautes (Depot/Ticket, Lot/Mouvement, etc.) et
+    empêchait d'ajouter la colonne email de l'agriculteur.
+    """
+    fig, ax = plt.subplots(1, 1, figsize=(22, 16))
+    ax.set_xlim(0, 22)
+    ax.set_ylim(0, 19)
     ax.axis('off')
     ax.set_title('Diagramme Entité-Relation du système FOMI-Stock', fontsize=16, fontweight='bold', pad=20)
 
-    def entity_box(x, y, name, fields, color='#E3F2FD'):
-        w = 3.2
+    W = 3.6
+    COL_X = {1: 0.4, 2: 6.0, 3: 11.6, 4: 17.2}
+    boxes = {}
+
+    def entity_box(col, name, fields, color, top):
+        x = COL_X[col]
         h = 0.35 * len(fields) + 0.6
-        rect = FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.05",
+        y = top - h
+        rect = FancyBboxPatch((x, y), W, h, boxstyle="round,pad=0.05",
                               facecolor=color, edgecolor='#1565C0', linewidth=1.5)
         ax.add_patch(rect)
-        ax.text(x + w/2, y + h - 0.2, name, ha='center', va='center',
+        ax.text(x + W/2, y + h - 0.2, name, ha='center', va='center',
                 fontsize=9, fontweight='bold', color='#0D47A1')
-        ax.plot([x, x+w], [y + h - 0.4, y + h - 0.4], color='#1565C0', linewidth=1)
+        ax.plot([x, x+W], [y + h - 0.4, y + h - 0.4], color='#1565C0', linewidth=1)
         for i, f in enumerate(fields):
-            ax.text(x + 0.1, y + h - 0.55 - i*0.35, f, fontsize=7, va='center', color='#333')
-        return (x + w/2, y, x + w/2, y + h)
+            ax.text(x + 0.12, y + h - 0.55 - i*0.35, f, fontsize=7, va='center', color='#333')
+        boxes[name] = (x, y, W, h)
+        return y
 
-    def relation(x1, y1, x2, y2, label='', cardinality='', color='#666'):
-        ax.plot([x1, x2], [y1, y2], color=color, linewidth=1, linestyle='-', zorder=0)
+    def stack(col, entities, top=18.4, gap=0.55):
+        y = top
+        for name, fields, color in entities:
+            y = entity_box(col, name, fields, color, y) - gap
+        return y
+
+    def anchor(name, side, frac=0.5):
+        x, y, w, h = boxes[name]
+        if side == 'left':
+            return (x, y + h*frac)
+        if side == 'right':
+            return (x + w, y + h*frac)
+        if side == 'top':
+            return (x + w*frac, y + h)
+        return (x + w*frac, y)
+
+    def poly(points, card='', label='', color='#607D8B'):
+        ax.plot([p[0] for p in points], [p[1] for p in points],
+                color=color, linewidth=1.1, zorder=0)
         if label:
-            mx, my = (x1+x2)/2, (y1+y2)/2
-            ax.text(mx, my+0.15, label, fontsize=6, ha='center', color=color, style='italic')
-        if cardinality:
-            ax.text(x2, y2+0.1, cardinality, fontsize=7, ha='center', color=color, fontweight='bold')
+            (x1, y1), (x2, y2) = points[0], points[1]
+            ax.text((x1+x2)/2, (y1+y2)/2 + 0.12, label, fontsize=6,
+                    ha='center', color=color, style='italic',
+                    bbox=dict(boxstyle='round,pad=0.05', facecolor='white', alpha=0.7))
+        if card:
+            x2, y2 = points[-1]
+            x1, y1 = points[-2]
+            dx, dy = x2 - x1, y2 - y1
+            off = (0.12 if abs(dx) > abs(dy) else 0.0, 0.12 if abs(dy) >= abs(dx) else 0.0)
+            ax.text(x2 + off[0], y2 + off[1], card, fontsize=7, ha='center',
+                    va='bottom', color=color, fontweight='bold',
+                    bbox=dict(boxstyle='round,pad=0.05', facecolor='white', alpha=0.8))
 
-    # Géographie
-    entity_box(0.3, 13, 'Province', ['id PK', 'code UNIQUE', 'nom'], '#E8EAF6')
-    entity_box(5, 13, 'Zone', ['id PK', 'code UNIQUE', 'nom', 'province_id FK'], '#E8EAF6')
-    entity_box(10, 13, 'Colline', ['id PK', 'code UNIQUE', 'nom', 'zone_id FK'], '#E8EAF6')
+    def rel(a, sa, fa, b, sb, fb, card='', label='', route=None, color='#607D8B'):
+        pts = [anchor(a, sa, fa)] + (route or []) + [anchor(b, sb, fb)]
+        poly(pts, card=card, label=label, color=color)
 
-    # Dépôt
-    entity_box(15, 13, 'Depot', ['id PK', 'code UNIQUE', 'nom', 'niveau (enum)', 'province_id FK', 'zone_id FK', 'colline_id FK', 'seuil_alerte_min', 'capacite_max', 'supprime', 'deleted_at'], '#FFF3E0')
+    # Colonne 1 : géographie -> agriculteur -> stock -> distribution -> utilisateur
+    stack(1, [
+        ('Province', ['id PK', 'code UNIQUE', 'nom'], '#E8EAF6'),
+        ('Agriculteur', ['id PK', 'numero_identite UNIQUE', 'nom', 'prenom', 'telephone UNIQUE',
+                         'email UNIQUE', 'colline_id FK', 'est_cooperative', 'superficie_ha',
+                         'supprime'], '#E8F5E9'),
+        ('Stock', ['id PK', 'depot_id FK', 'engrais_type_id FK', 'quantite_disponible', 'updated_at'], '#F1F8E9'),
+        ('Distribution', ['id PK', 'ticket_id FK', 'lot_id FK', 'depot_id FK', 'quantite',
+                          'agent_id FK', 'date_distribution', 'reference_mouvement_id FK'], '#FFEBEE'),
+        ('Utilisateur', ['id PK', 'username UNIQUE', 'password_hash', 'nom_complet', 'role (enum)',
+                         'depot_id FK', 'zone_id FK', 'province_id FK', 'actif', 'supprime'], '#F3E5F5'),
+    ])
 
-    # Entités métier
-    entity_box(0.3, 9.5, 'Agriculteur', ['id PK', 'numero_identite', 'nom', 'prenom', 'telephone', 'colline_id FK', 'est_cooperative', 'superficie_ha', 'supprime'], '#E8F5E9')
-    entity_box(5, 9.5, 'EngraisType', ['id PK', 'code UNIQUE', 'nom', 'poids_sac_kg', 'prix_subventionne', 'actif'], '#FCE4EC')
-    entity_box(10, 9.5, 'Lot', ['id PK', 'numero_lot UNIQUE', 'engrais_type_id FK', 'quantite_initiale', 'date_fabrication', 'date_peremption', 'date_reception_fomi'], '#FCE4EC')
-    entity_box(15, 9.5, 'Ticket', ['id PK', 'numero_ticket UNIQUE', 'agriculteur_id FK', 'engrais_type_id FK', 'quantite_commandee', 'quantite_servie', 'montant_paye', 'date_paiement', 'depot_retrait_id FK', 'statut (enum)', 'saison', 'superficie_ha', 'supprime'], '#FFF3E0')
+    # Colonne 2 : zone -> engrais -> stock_lot
+    stack(2, [
+        ('Zone', ['id PK', 'code UNIQUE', 'nom', 'province_id FK'], '#E8EAF6'),
+        ('EngraisType', ['id PK', 'code UNIQUE', 'nom', 'poids_sac_kg', 'prix_subventionne', 'actif'], '#FCE4EC'),
+        ('StockLot', ['id PK', 'depot_id FK', 'lot_id FK', 'quantite', 'updated_at'], '#F1F8E9'),
+    ])
 
-    # Stock
-    entity_box(0.3, 6.5, 'Stock', ['id PK', 'depot_id FK', 'engrais_type_id FK', 'quantite_disponible', 'updated_at'], '#F1F8E9')
-    entity_box(5, 6.5, 'StockLot', ['id PK', 'depot_id FK', 'lot_id FK', 'quantite', 'updated_at'], '#F1F8E9')
+    # Colonne 3 : colline -> lot -> mouvement -> audit
+    stack(3, [
+        ('Colline', ['id PK', 'code UNIQUE', 'nom', 'zone_id FK'], '#E8EAF6'),
+        ('Lot', ['id PK', 'numero_lot UNIQUE', 'engrais_type_id FK', 'quantite_initiale',
+                 'date_fabrication', 'date_peremption', 'date_reception_fomi'], '#FCE4EC'),
+        ('Mouvement', ['id PK', 'type (enum)', 'lot_id FK', 'engrais_type_id FK', 'depot_source_id FK',
+                       'depot_dest_id FK', 'quantite', 'agent_id FK', 'ticket_id FK', 'commentaire',
+                       'date_mouvement', 'idempotency_key', 'annule', 'motif_annulation',
+                       'annule_par_id FK', 'reference_annulation_id FK'], '#FFEBEE'),
+        ('AuditLog', ['id PK', 'utilisateur_id FK', 'action', 'entity_type', 'entity_id',
+                      'ip_address', 'details_json (JSONB)', 'created_at'], '#EFEBE9'),
+    ])
 
-    # Mouvement
-    entity_box(10, 5.5, 'Mouvement', ['id PK', 'type (enum)', 'lot_id FK', 'engrais_type_id FK', 'depot_source_id FK', 'depot_dest_id FK', 'quantite', 'agent_id FK', 'ticket_id FK', 'commentaire', 'date_mouvement', 'idempotency_key', 'annule', 'motif_annulation', 'annule_par_id FK', 'reference_annulation_id FK'], '#FFEBEE')
+    # Colonne 4 : dépôt -> ticket -> alerte -> seuil
+    stack(4, [
+        ('Depot', ['id PK', 'code UNIQUE', 'nom', 'niveau (enum)', 'province_id FK', 'zone_id FK',
+                   'colline_id FK', 'seuil_alerte_min', 'capacite_max', 'supprime', 'deleted_at'], '#FFF3E0'),
+        ('Ticket', ['id PK', 'numero_ticket UNIQUE', 'agriculteur_id FK', 'engrais_type_id FK',
+                    'quantite_commandee', 'quantite_servie', 'montant_paye', 'date_paiement',
+                    'depot_retrait_id FK', 'statut (enum)', 'saison', 'superficie_ha', 'supprime'], '#FFF3E0'),
+        ('Alerte', ['id PK', 'depot_id FK', 'engrais_type_id FK', 'type (enum)', 'message',
+                    'niveau (enum)', 'traitee', 'created_at'], '#FFF9C4'),
+        ('SeuilAlerte', ['id PK', 'depot_id FK', 'engrais_type_id FK', 'seuil_min', 'criticite'], '#FFF9C4'),
+    ])
 
-    # Distribution
-    entity_box(0.3, 3.5, 'Distribution', ['id PK', 'ticket_id FK', 'lot_id FK', 'depot_id FK', 'quantite', 'agent_id FK', 'date_distribution', 'reference_mouvement_id FK UNIQUE'], '#FFEBEE')
+    # Relations entre colonnes adjacentes
+    rel('Province', 'right', 0.5, 'Zone', 'left', 0.5, '1:N')
+    rel('Zone', 'right', 0.5, 'Colline', 'left', 0.5, '1:N')
+    rel('Colline', 'right', 0.5, 'Depot', 'left', 0.8, '0..1:N')
+    rel('EngraisType', 'right', 0.5, 'Lot', 'left', 0.35, '1:N',
+        route=[(10.6, anchor('EngraisType', 'right', 0.5)[1])])
+    rel('Lot', 'left', 0.5, 'StockLot', 'right', 0.5, '1:N',
+        route=[(10.6, anchor('Lot', 'left', 0.5)[1])])
 
-    # Alertes & Seuils
-    entity_box(15, 5.5, 'Alerte', ['id PK', 'depot_id FK', 'engrais_type_id FK', 'type (enum)', 'message', 'niveau (enum)', 'traitee', 'created_at'], '#FFF9C4')
-    entity_box(15, 3.5, 'SeuilAlerte', ['id PK', 'depot_id FK', 'engrais_type_id FK', 'seuil_min', 'criticite'], '#FFF9C4')
+    # Relations dans la colonne 4 (dépôt -> ticket -> alerte)
+    rel('Depot', 'right', 0.45, 'Ticket', 'right', 0.6, '1:N',
+        route=[(21.2, anchor('Depot', 'right', 0.45)[1])])
+    rel('Depot', 'left', 0.55, 'Mouvement', 'right', 0.75, '1:N',
+        route=[(16.2, anchor('Depot', 'left', 0.55)[1])])
+    rel('Depot', 'right', 0.15, 'Alerte', 'right', 0.5, '1:N',
+        route=[(21.4, anchor('Depot', 'right', 0.15)[1])])
 
-    # Utilisateur & Audit
-    entity_box(0.3, 0.5, 'Utilisateur', ['id PK', 'username UNIQUE', 'password_hash', 'nom_complet', 'role (enum)', 'depot_id FK', 'zone_id FK', 'province_id FK', 'actif', 'supprime'], '#F3E5F5')
-    entity_box(10, 0.5, 'AuditLog', ['id PK', 'utilisateur_id FK', 'action', 'entity_type', 'entity_id', 'ip_address', 'details_json (JSONB)', 'created_at'], '#EFEBE9')
+    # Relations longues routées par les marges (aucune traversée de boîte)
+    rel('Agriculteur', 'right', 0.35, 'Ticket', 'right', 0.35, '1:N',
+        route=[(5.0, anchor('Agriculteur', 'right', 0.35)[1]), (5.0, 18.8),
+               (21.6, 18.8), (21.6, anchor('Ticket', 'right', 0.35)[1])])
+    rel('Ticket', 'right', 0.1, 'Distribution', 'right', 0.5, '1:N',
+        route=[(21.4, anchor('Ticket', 'right', 0.1)[1]), (21.4, 0.25),
+               (5.0, 0.25), (5.0, anchor('Distribution', 'right', 0.5)[1])])
+    rel('Utilisateur', 'left', 0.6, 'AuditLog', 'left', 0.5, '1:N',
+        route=[(0.15, anchor('Utilisateur', 'left', 0.6)[1]), (0.15, 18.95),
+               (10.6, 18.95), (10.6, anchor('AuditLog', 'left', 0.5)[1])])
 
-    # Relations
-    relation(1.9, 13, 5, 13.5, '', '1:N')
-    relation(6.6, 13, 10, 13.5, '', '1:N')
-    relation(11.6, 13.5, 15, 13.5, '', '0..1:N')
-    relation(1.9, 9.5, 10, 13, '', 'N:1')
-    relation(6.6, 9.5, 10, 10, '', '1:N')
-    relation(11.6, 10, 15, 10, '', '1:N')
-    relation(1.9, 9.5, 10, 13.5, '', 'N:1')
+    ax.text(0.4, 0.02, 'Les cardinalités sont indiquées à l’extrémité de chaque relation ; '
+                       'la colonne email (V12) est unique et nullable.',
+            fontsize=7, color='#666', style='italic')
 
     plt.tight_layout()
     plt.savefig(f'{OUT_DIR}/er_diagram.png', dpi=150, bbox_inches='tight')
@@ -198,13 +276,13 @@ def draw_sequence_distribution():
     messages = [
         (0, 1, 'POST /api/distributions', 10.5),
         (1, 2, 'distribuer(req, agent)', 10.0),
-        (2, 3, 'sortirFifo(depot, type, qty)', 9.5),
-        (3, 4, 'SELECT lot ORDER BY date ASC\n(FIFO)', 9.0),
+        (2, 3, 'sortirFifo(depot, type, qty, lotIdForce)', 9.5),
+        (3, 4, 'findByDepotId...OrderByLotDateReceptionFomiAsc\n+ filtre des lots non périmés', 9.0),
         (4, 3, 'List<LotSortie>', 8.5),
         (3, 2, 'Quantités décrémentées', 8.0),
         (2, 4, 'MouvementRepository.save(DISTRIBUTION)', 7.5),
         (2, 4, 'DistributionRepository.save()', 7.0),
-        (2, 4, 'TicketRepository.save(statut=SERVI)', 6.5),
+        (2, 4, 'TicketRepository.save()\n(mettreAJourStatut : SERVI/PARTIEL)', 6.5),
         (2, 5, 'verifierDepot(depot, type)', 6.0),
         (5, 5, 'Vérif STOCK_BAS, RUPTURE\nPEREMPTION, INACTIVITÉ', 5.5),
         (2, 1, 'List<DistributionResponse>', 5.0),
@@ -257,7 +335,7 @@ def draw_sequence_ticket():
         (2, 2, 'Vérifier unicité numero_ticket\n+ quota superficie × 150 kg/ha (R6, R22)\n+ pas de doublon même saison/type', 7.5),
         (2, 2, 'Sauvegarder ticket\nstatut = EN_ATTENTE_DE_VALIDATION', 6.5),
         (2, 2, 'AuditLog: TICKET_CREATE', 6.0),
-        (1, 0, 'TicketResponse {statut: EN_ATTENTE...}', 5.5),
+        (1, 0, 'TicketResponse\n{statut: EN_ATTENTE_DE_VALIDATION}', 5.5),
         (3, 1, 'PATCH /api/tickets/{id}/activer', 4.7),
         (1, 2, 'activer(id)', 4.2),
         (2, 2, 'Vérifier statut == EN_ATTENTE_DE_VALIDATION\n→ statut = ACTIF', 3.5),
@@ -424,19 +502,20 @@ def draw_layered_architecture():
         (0.5, 8.0, 13, 1.5, 'PRÉSENTATION', 'Navigateur Web (React) │ Swagger UI │ Applications Mobiles', '#E3F2FD', '#1565C0'),
         (0.5, 6.2, 13, 1.5, 'API REST', '17 Controllers Spring MVC │ Endpoints HTTP │ Validation @Valid │ OpenAPI/Swagger', '#E8F5E9', '#2E7D32'),
         (0.5, 4.4, 13, 1.5, 'SÉCURITÉ', 'Spring Security │ JWT (HMAC-SHA) │ Filtre d\'authentification │ RBAC 5 rôles', '#FFF3E0', '#E65100'),
-        (0.5, 2.6, 13, 1.5, 'SERVICES', 'DistributionService (FIFO) │ TicketService (Quotas R6/R22) │ AlerteService (Cron)\nStockService │ MouvementService │ StatsService │ AuditLogService', '#F3E5F5', '#7B1FA2'),
-        (0.5, 1.0, 6, 1.3, 'REPOSITORIES', 'Spring Data JPA │ 15 Repositories\nRequêtes JPQL │ Pessimistic Locking', '#FCE4EC', '#C62828'),
-        (7.5, 1.0, 6, 1.3, 'MODÈLE DOMAINE', '16 Entités JPA │ 6 Enums PostgreSQL\n30+ DTOs (Records Java)', '#EFEBE9', '#5D4037'),
-        (0.5, 0.0, 13, 0.7, 'INFRASTRUCTURE', 'PostgreSQL 16 │ Flyway (11 migrations) │ Docker │ GitHub Actions │ Railway CI/CD', '#263238', '#FFF'),
+        (0.5, 2.6, 13, 1.5, 'SERVICES', 'DistributionService (FIFO) │ TicketService (Quotas R6/R22) │ AlerteService (Cron)\nStockService │ MouvementService │ StatsService │ AuditLogService │ EmailNotificationService (SMTP)', '#F3E5F5', '#7B1FA2'),
+        (0.5, 1.0, 6, 1.3, 'REPOSITORIES', 'Spring Data JPA │ 16 Repositories\nRequêtes JPQL │ Pessimistic Locking', '#FCE4EC', '#C62828'),
+        (7.5, 1.0, 6, 1.3, 'MODÈLE DOMAINE', '16 Entités JPA │ 6 Enums PostgreSQL\n30+ DTOs (Records Java) │ email agriculteur', '#EFEBE9', '#5D4037'),
+        (0.5, 0.0, 13, 0.7, 'INFRASTRUCTURE', 'PostgreSQL 16 │ Flyway (12 migrations) │ SMTP (Mailpit/Mailjet) │ Docker │ GitHub Actions │ Railway CI/CD', '#263238', '#FFF'),
     ]
 
     for x, y, w, h, title, desc, bg, ec in layers:
         rect = FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.1",
                               facecolor=bg, edgecolor=ec, linewidth=2)
         ax.add_patch(rect)
-        tc = ec if ec != '#FFF' else '#333'
+        sombre = ec == '#FFF'
+        tc = '#FFFFFF' if sombre else ec
         ax.text(x + 0.3, y + h - 0.3, title, fontsize=11, fontweight='bold', color=tc)
-        ax.text(x + 0.3, y + h/2 - 0.2, desc, fontsize=8, color='#555')
+        ax.text(x + 0.3, y + h/2 - 0.2, desc, fontsize=8, color='#E0E0E0' if sombre else '#555')
 
     # Arrows between layers
     for y in [7.7, 5.9, 4.1, 2.3]:
@@ -453,42 +532,64 @@ def draw_layered_architecture():
 # 8. DIAGRAMME D'ÉTAT - Cycle de vie du ticket
 # ============================================================
 def draw_ticket_state_machine():
-    fig, ax = plt.subplots(1, 1, figsize=(16, 8))
+    fig, ax = plt.subplots(1, 1, figsize=(16, 9))
     ax.set_xlim(0, 16)
-    ax.set_ylim(0, 8)
+    ax.set_ylim(0, 9)
     ax.axis('off')
-    ax.set_title('Diagramme d\'état - Cycle de vie du ticket', fontsize=14, fontweight='bold', pad=15)
+    ax.set_title('Machine à états du ticket de distribution', fontsize=14, fontweight='bold', pad=15)
 
-    def state(x, y, text, color='#E3F2FD'):
-        rect = FancyBboxPatch((x-0.9, y-0.3), 1.8, 0.6, boxstyle="round,pad=0.1",
-                              facecolor=color, edgecolor='#1565C0', linewidth=2)
+    def state(x, y, text, color='#E3F2FD', ec='#1565C0', w=2.0, h=0.9, fontsize=8):
+        rect = FancyBboxPatch((x - w / 2, y - h / 2), w, h, boxstyle="round,pad=0.08",
+                              facecolor=color, edgecolor=ec, linewidth=2)
         ax.add_patch(rect)
-        ax.text(x, y, text, ha='center', va='center', fontsize=8, fontweight='bold')
+        ax.text(x, y, text, ha='center', va='center', fontsize=fontsize, fontweight='bold')
 
-    def trans(x1, y1, x2, y2, label):
-        ax.annotate('', xy=(x2, y2), xytext=(x1, y1),
-                    arrowprops=dict(arrowstyle='->', color='#333', lw=1.5))
-        mx, my = (x1+x2)/2, (y1+y2)/2
-        ax.text(mx, my+0.15, label, fontsize=7, ha='center',
-                bbox=dict(boxstyle='round,pad=0.15', facecolor='#FFF9C4', edgecolor='#CCC'))
+    def trans(p1, p2, label, rad=0.0, color='#333', ls='-', lx=None, ly=None, fontsize=7):
+        ax.annotate('', xy=p2, xytext=p1,
+                    arrowprops=dict(arrowstyle='->', color=color, lw=1.5, linestyle=ls,
+                                    connectionstyle=f"arc3,rad={rad}"))
+        if label:
+            mx = lx if lx is not None else (p1[0] + p2[0]) / 2
+            my = ly if ly is not None else (p1[1] + p2[1]) / 2
+            ax.text(mx, my, label, fontsize=fontsize, ha='center', va='center',
+                    bbox=dict(boxstyle='round,pad=0.2', facecolor='#FFF9C4', edgecolor='#CCC'))
 
-    # States
-    state(2, 6.5, 'PAYE\n(Paiement reçu)', '#C8E6C9')
-    state(5.5, 6.5, 'EN_ATTENTE\nDE_VALIDATION', '#BBDEFB')
-    state(9.5, 6.5, 'ACTIF\n(Validé)', '#A5D6A7')
-    state(13.5, 6.5, 'PARTIEL\n(Livré partiel)', '#FFCC80')
-    state(13.5, 3.5, 'SERVI\n(Totalement livré)', '#81C784')
-    state(5.5, 3.5, 'REJETÉ\n(Refusé)', '#EF9A9A')
-    state(9, 1.5, 'ANNULE', '#E0E0E0')
-    state(2, 3.5, 'EXPIRE\n(Annulé auto)', '#BDBDBD')
+    # État initial (pseudo-état)
+    ax.add_patch(plt.Circle((0.6, 7.0), 0.12, facecolor='#333', edgecolor='#333', zorder=5))
+
+    # États principaux
+    state(3.0, 7.0, 'EN_ATTENTE_DE\nVALIDATION', '#BBDEFB', w=2.5)
+    state(6.8, 7.0, 'ACTIF', '#A5D6A7', w=1.7)
+    state(10.3, 7.0, 'PARTIEL', '#FFCC80', w=1.8)
+    state(13.7, 7.0, 'SERVI', '#81C784', w=1.7)
+    state(4.6, 4.5, 'REJETE', '#EF9A9A', w=1.8)
+    state(8.6, 3.0, 'ANNULE', '#E0E0E0', w=1.8)
+    state(2.5, 2.2, 'EXPIRE', '#BDBDBD', w=1.8)
 
     # Transitions
-    trans(2.9, 6.5, 4.6, 6.5, 'Soumettre')
-    trans(6.4, 6.5, 8.6, 6.5, 'Activer\n(Superviseur)')
-    trans(9.5, 6.2, 12.6, 6.2, 'Distribution\npartielle')
-    trans(12.6, 5.5, 9.5, 3.5, 'quantite_servie\n== commandee')
-    trans(6.4, 6.2, 6.4, 3.8, 'Rejeter\n(motif)')
-    trans(13.5, 6.2, 13.5, 3.8, 'Dernière\ndistribution')
+    trans((0.75, 7.0), (1.55, 7.0), '')
+    trans((4.2, 7.0), (5.85, 7.0), 'activer()\n(SUPERVISEUR)')
+    trans((7.7, 7.0), (9.3, 7.0), 'distribution\npartielle')
+    trans((11.3, 7.0), (12.75, 7.0), 'solde\ndistribué')
+    trans((6.8, 7.4), (13.7, 7.4),
+          'distribution totale (quantité servie ≥ quantité commandée)',
+          rad=-0.35, ly=8.35)
+    trans((3.0, 6.55), (4.3, 4.95), 'rejeter(motif)', rad=0.15, lx=3.3, ly=5.4)
+    trans((6.8, 6.55), (7.9, 3.5), 'annuler()\n(ACTIF/PARTIEL)', rad=-0.15, lx=6.9, ly=5.1)
+    trans((10.3, 6.55), (9.2, 3.5), '', rad=0.15)
+    trans((2.5, 6.55), (2.5, 2.65), 'expirerTickets(saison)\n(tickets non servis)',
+          rad=-0.25, lx=1.35, ly=4.6)
+
+    # États hérités de l'énumération StatutTicket
+    legacy = FancyBboxPatch((11.9, 1.2), 3.8, 2.6, boxstyle="round,pad=0.1",
+                            facecolor='#FAFAFA', edgecolor='#9E9E9E', linewidth=1.5, linestyle='--')
+    ax.add_patch(legacy)
+    ax.text(13.8, 3.55, 'États hérités', ha='center', fontsize=8, fontweight='bold', color='#616161')
+    state(12.85, 2.85, 'PAYE', '#ECEFF1', ec='#9E9E9E', w=1.5, h=0.55, fontsize=7)
+    state(14.85, 2.85, 'EN_ATTENTE', '#ECEFF1', ec='#9E9E9E', w=1.5, h=0.55, fontsize=6.5)
+    state(13.85, 1.85, 'RECLAMATION', '#ECEFF1', ec='#9E9E9E', w=1.7, h=0.55, fontsize=6.5)
+    ax.text(13.8, 1.35, 'acceptés à la distribution, non produits par creer()',
+            ha='center', fontsize=6, color='#757575', style='italic')
 
     plt.tight_layout()
     plt.savefig(f'{OUT_DIR}/ticket_state_machine.png', dpi=150, bbox_inches='tight')
@@ -526,32 +627,36 @@ def draw_fifo_flowchart():
             ax.text(mx+0.1, my, label, fontsize=7, color='#333')
 
     # Flow
-    process(4, 10.5, 6, 0.8, 'Début : Demande de distribution', '#C8E6C9')
+    process(4, 10.5, 6, 0.8, 'Début : demande de distribution', '#C8E6C9')
     arrow(7, 10.5, 7, 10.0)
 
-    diamond(4.5, 9.0, 5, 0.8, 'Ticket valide?\n(ACTIF ou PAYE)')
+    diamond(3.2, 9.0, 7.6, 0.9,
+            'Ticket distribuable ?\n(ACTIF, PARTIEL, PAYE ou EN_ATTENTE)')
     arrow(7, 9.0, 7, 8.5, 'Oui')
-    arrow(9.5, 9.4, 12, 9.4, 'Non → Erreur')
-    ax.text(12, 9.6, '✗ Rejeté', fontsize=8, color='red')
+    arrow(10.8, 9.45, 12, 9.45, 'Non')
+    ax.text(12, 9.7, '✗ Statut incompatible', fontsize=8, color='red')
 
-    process(4, 7.5, 6, 0.8, 'Vérifier Périmètre Agent\n(Colline → Depot → Zone)')
+    process(4, 7.5, 6, 0.8, 'Vérifier le périmètre de l\'agent\n(Colline → Dépôt → Zone)')
     arrow(7, 7.5, 7, 7.0)
 
-    diamond(4, 6.0, 6, 0.8, 'quantité restante > 0?')
-    arrow(7, 6.0, 7, 5.5, 'Oui')
-    arrow(10, 6.4, 12, 6.4, 'Non → SERVI')
-    ax.text(12, 6.6, '✓ Ticket complet', fontsize=8, color='green')
+    process(3.6, 6.0, 6.8, 0.9,
+            'Récupérer les lots du dépôt\n(quantité > 0 et lots non périmés)\nTrier par dateReceptionFomi croissante')
+    arrow(7, 6.0, 7, 5.5)
 
-    process(4, 4.5, 6, 0.8, 'Trier les lots par date\n(FIFO : premier entré = premier sorti)')
-    arrow(7, 4.5, 7, 4.0)
+    diamond(4, 4.6, 6, 0.8, 'quantité restante > 0?')
+    arrow(7, 4.6, 7, 4.1, 'Oui')
+    arrow(10, 5.0, 12, 5.0, 'Non → SERVI')
+    ax.text(12, 5.3, '✓ Ticket complet', fontsize=8, color='green')
 
-    process(3, 2.8, 8, 0.8, 'Pour chaque lot :\n  min(quantité_lot, quantité_restante)\n  Décrémenter StockLot et Stock')
-    arrow(7, 2.8, 7, 2.3)
+    process(3, 2.6, 8, 0.9,
+            'Pour chaque lot : pris = min(stock du lot, restant)\nDécrémenter StockLot et Stock\nPasser au lot suivant')
+    arrow(7, 2.6, 7, 2.1)
 
-    process(4, 1.2, 6, 0.8, 'Créer Mouvement(DISTRIBUTION)\n+ Distribution + MAJ Ticket\n+ AuditLog + Vérif Alertes', '#F3E5F5')
-    arrow(7, 1.2, 7, 0.7)
+    process(4, 1.0, 6, 0.8,
+            'Créer Mouvement(DISTRIBUTION)\n+ Distribution + MAJ Ticket\n+ AuditLog + Vérifier alertes', '#F3E5F5')
+    arrow(7, 1.0, 7, 0.55)
 
-    process(4.5, 0.0, 5, 0.5, 'Fin', '#EF9A9A')
+    process(4.5, 0.0, 5, 0.45, 'Fin', '#EF9A9A')
 
     plt.tight_layout()
     plt.savefig(f'{OUT_DIR}/fifo_flowchart.png', dpi=150, bbox_inches='tight')
@@ -598,13 +703,16 @@ def draw_fomi_timeline():
 # DIAGRAMME DE CLASSES UML (Classes principales du système)
 # ============================================================
 def draw_class_diagram():
-    fig, ax = plt.subplots(1, 1, figsize=(16, 12))
+    fig, ax = plt.subplots(1, 1, figsize=(18, 13))
     ax.set_xlim(0, 16)
-    ax.set_ylim(0, 12)
+    ax.set_ylim(0, 13.4)
     ax.axis('off')
     ax.set_title('Diagramme de classes — Entités et relations', fontsize=14, fontweight='bold', pad=15)
 
     def cls_box(x, y, w, h, title, attrs, ops):
+        # Hauteur calculée pour que les attributs ET les méthodes tiennent dans
+        # la boîte (l'ancienne formule faisait chevaucher les deux sections).
+        h = max(h, 0.75 + 0.28*len(attrs) + 0.30*len(ops) + 0.15)
         rect = FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.05",
                               facecolor='#FCE4EC', edgecolor='#C62828', linewidth=1.5)
         ax.add_patch(rect)
@@ -613,19 +721,19 @@ def draw_class_diagram():
         ax.plot([x, x+w], [y + h - 0.4, y + h - 0.4], color='#C62828', lw=1)
         # attributes
         for i, a in enumerate(attrs):
-            ax.text(x + 0.1, y + h - 0.55 - i*0.28, a, fontsize=6.5, va='center', color='#333')
-        # methods separator
-        y_start_ops = y + max(0.6, 0.28*len(attrs) + 0.1)
-        ax.plot([x, x+w], [y_start_ops, y_start_ops], color='#C62828', lw=0.5)
+            ax.text(x + 0.1, y + h - 0.62 - i*0.28, a, fontsize=6.5, va='center', color='#333')
+        # methods separator : juste sous le dernier attribut
+        y_sep = y + h - 0.62 - 0.28*(len(attrs) - 1) - 0.17
+        ax.plot([x, x+w], [y_sep, y_sep], color='#C62828', lw=0.5)
         for i, o in enumerate(ops):
-            ax.text(x + 0.1, y_start_ops - 0.35 - i*0.25, o, fontsize=6, va='center', color='#1565C0', style='italic')
+            ax.text(x + 0.1, y_sep - 0.28 - i*0.26, o, fontsize=6, va='center', color='#1565C0', style='italic')
         return (x + w/2, y + h/2)
 
     # Key entities with representative attributes/methods
-    cls_box(0.3, 9.5, 2.5, 2.2, 'Ticket', ['id: Long', 'numeroTicket: String', 'statut: StatutTicket', 'quantiteServie: Integer', 'agriculteur: Agriculteur'], ['creer()', 'valider()', 'rejeter()', 'mettreAJourStatut()'])
-    cls_box(3.5, 9.5, 2.5, 2.0, 'Agriculteur', ['id: Long', 'numeroIdentite: String', 'telephone: String', 'superficieHa: BigDecimal', 'colline: Colline'], ['creer()', 'rechercherParTelephone()'])
+    cls_box(0.3, 9.5, 2.5, 2.2, 'Ticket', ['id: Long', 'numeroTicket: String', 'statut: StatutTicket', 'quantiteServie: Integer', 'agriculteur: Agriculteur'], ['getQuantiteRestante()', 'mettreAJourStatut()'])
+    cls_box(3.5, 9.5, 2.5, 2.0, 'Agriculteur', ['id: Long', 'numeroIdentite: String', 'telephone: String', 'email: String', 'superficieHa: BigDecimal', 'colline: Colline'], ['creer()', 'rechercherParTelephone()'])
     cls_box(6.8, 9.5, 2.5, 2.2, 'Mouvement', ['id: Long', 'type: TypeMouvement', 'quantite: Integer', 'agent: Utilisateur', 'dateMouvement: LocalDateTime', 'idempotencyKey: String'], ['annuler()', 'restaurerStock()'])
-    cls_box(10, 9.5, 2.5, 2.0, 'Distribution', ['id: Long', 'ticket: Ticket', 'lot: Lot', 'quantite: Integer', 'agent: Utilisateur', 'dateDistribution: LocalDateTime'], ['distribuerFifo()', 'annuler()'])
+    cls_box(10, 9.5, 2.5, 2.0, 'Distribution', ['id: Long', 'ticket: Ticket', 'lot: Lot', 'quantite: Integer', 'agent: Utilisateur', 'dateDistribution: LocalDateTime'], ['distribuer()', 'annuler()'])
     cls_box(13.5, 9.5, 2.5, 2.4, 'Utilisateur', ['id: Long', 'username: String', 'passwordHash: String', 'role: RoleUtilisateur', 'depot: Depot', 'zone: Zone', 'province: Province'], ['getAuthorities()', 'isAccountNonExpired()'])
 
     # Second row
@@ -635,9 +743,9 @@ def draw_class_diagram():
     cls_box(10, 5.8, 2.5, 2.0, 'StockLot', ['id: Long', 'depot: Depot', 'lot: Lot', 'quantite: Integer', 'updatedAt: LocalDateTime'], ['verifierLotPerime()', 'decrementer()'])
 
     # Third row
-    cls_box(3, 3.5, 2.5, 1.5, 'Alerte', ['id: Long', 'depot: Depot', 'type: TypeAlerte', 'niveau: NiveauAlerte', 'traitee: Boolean', 'message: String'], ['creerSiAbsente()', 'traiter()'])
-    cls_box(6.8, 3.5, 2.5, 2.0, 'AuditLog', ['id: Long', 'utilisateur: Utilisateur', 'action: String', 'entityType: String', 'detailsJson: JSONB', 'ipAddress: String'], ['log()'])
-    cls_box(10, 3.5, 2.5, 1.5, 'SeuilAlerte', ['id: Long', 'depot: Depot', 'engraisType: EngraisType', 'seuilMin: Integer', 'criticite: String'], ['verifierSeuil()'])
+    cls_box(3, 1.6, 2.5, 1.5, 'Alerte', ['id: Long', 'depot: Depot', 'type: TypeAlerte', 'niveau: NiveauAlerte', 'traitee: Boolean', 'message: String'], ['creerSiAbsente()', 'traiter()'])
+    cls_box(6.8, 1.6, 2.5, 2.0, 'AuditLog', ['id: Long', 'utilisateur: Utilisateur', 'action: String', 'entityType: String', 'detailsJson: JSONB', 'ipAddress: String'], ['log()'])
+    cls_box(10, 1.6, 2.5, 1.5, 'SeuilAlerte', ['id: Long', 'depot: Depot', 'engraisType: EngraisType', 'seuilMin: Integer', 'criticite: String'], ['verifierSeuil()'])
 
     # Relationships (simplified UML associations)
     def rel_line(x1, y1, x2, y2, label='', color='#1565C0', style='-'):
@@ -647,11 +755,10 @@ def draw_class_diagram():
             ax.text(mx, my+0.15, label, fontsize=7, ha='center', va='bottom', color=color,
                     bbox=dict(boxstyle='round,pad=0.1', facecolor='white', alpha=0.8))
 
-    rel_line(2.8, 8.4, 4.7, 9.0, 'N:1')
-    rel_line(6.0, 8.8, 8.0, 9.0, 'N:1 (Ticket)', '#7B1FA2')
-    rel_line(9.5, 5.5, 9.5, 7.5, '1:1 (Distribution)', '#7B1FA2')
-    rel_line(5.5, 7.7, 5.5, 6.7, '1:N', '#333')
-    rel_line(8.0, 4.5, 8.0, 5.3, '1:N', '#333')
+    rel_line(2.8, 10.9, 3.5, 10.9, 'N:1')
+    rel_line(2.8, 7.0, 3.5, 7.0, '1:N', '#7B1FA2')
+    rel_line(9.3, 7.0, 10.0, 7.0, '1:N', '#333')
+    rel_line(4.4, 5.8, 4.4, 4.78, '1:N', '#333')
 
     plt.tight_layout()
     plt.savefig(f'{OUT_DIR}/class_diagram.png', dpi=150, bbox_inches='tight')
@@ -684,8 +791,9 @@ def draw_deployment_diagram():
     node(0.5, 4.5, 14.5, 2.0, 'Serveur API (Railway Docker)', 'Java 21 / Spring Boot 3.3.5 / PostgreSQL 16 / JWT / RBAC / Flyway\nImage Docker multi-étapes (JRE 21) / Port 8080 / CI GitHub Actions', '#E8F5E9', '#2E7D32')
 
     # DB tier
-    node(3.5, 1.5, 5, 1.5, 'PostgreSQL 16', '16 tables + enums / JSONB audit / Index GIN / Migrations Flyway V1→V11', '#FCE4EC', '#C62828')
-    node(9.5, 1.5, 3, 1.5, 'Testcontainers', 'PostgreSQL 16-alpine / JUnit 5 / 203 tests / Docker Java 1.44', '#E8EAF6', '#283593')
+    node(3.2, 1.5, 4.6, 1.5, 'PostgreSQL 16', '16 tables + enums / JSONB audit / Index B-tree et composites / Migrations Flyway V1→V12', '#FCE4EC', '#C62828')
+    node(8.4, 1.5, 3.0, 1.5, 'Testcontainers', 'PostgreSQL 16-alpine / JUnit 5 / 215 tests / Docker Java 1.44', '#E8EAF6', '#283593')
+    node(12.0, 1.5, 3.2, 1.5, 'Serveur SMTP', 'Notifications email / SMTP 1025 (Mailpit) / Mailjet en production', '#E0F2F1', '#00695C')
 
     # Connections
     def conn(x1, y1, x2, y2, label=''):
@@ -700,11 +808,13 @@ def draw_deployment_diagram():
     conn(6.5, 7.0, 7.5, 5.7, 'HTTPS / REST')
     conn(10.75, 7.0, 7.5, 5.7, 'HTTPS / REST')
     # API -> DB
-    conn(4, 4.5, 5.5, 3.2, 'JDBC / JPA')
+    conn(4, 4.5, 5.0, 3.2, 'JDBC / JPA')
+    # API -> SMTP
+    conn(12.5, 4.5, 13.6, 3.2, 'SMTP / TLS')
     # DB -> Testcontainers
-    conn(9.5, 1.5, 11, 1.5, 'Docker')
+    conn(7.8, 1.5, 8.4, 1.5, 'Docker')
     # CI note
-    ax.text(8, 0.2, 'Déploiement CI/CD : GitHub Actions (build + test 203) → Docker build → Railway (auto-deploy sur push main)', fontsize=7, ha='center', color='#555', style='italic', bbox=dict(boxstyle='round,pad=0.2', facecolor='#F5F5F5', edgecolor='#CCC'))
+    ax.text(8, 0.2, 'Déploiement CI/CD : GitHub Actions (build + test 215) → Docker build → Railway (auto-deploy sur push main)', fontsize=7, ha='center', color='#555', style='italic', bbox=dict(boxstyle='round,pad=0.2', facecolor='#F5F5F5', edgecolor='#CCC'))
 
     plt.tight_layout()
     plt.savefig(f'{OUT_DIR}/deployment_diagram.png', dpi=150, bbox_inches='tight')
@@ -856,89 +966,89 @@ def draw_activity_diagram():
 # DICTIONNAIRE DE DONNÉES (Visual summary — image + table reference)
 # ============================================================
 def draw_data_dictionary():
-    fig, ax = plt.subplots(1, 1, figsize=(16, 14))
+    """Dictionnaire visuel : colonnes fixes + retour a la ligne explicite.
+
+    Les libelles longs etaient auparavant dessines sur une seule ligne et
+    debordaient des cadres (voire de la figure) ; ils sont maintenant replies
+    avec textwrap et chaque bloc a une largeur reservee.
+    """
+    fig, ax = plt.subplots(1, 1, figsize=(16, 13))
     ax.set_xlim(0, 16)
-    ax.set_ylim(0, 14)
+    ax.set_ylim(0, 13)
     ax.axis('off')
     ax.set_title('Dictionnaire de données — Tables principales du système FOMI-Stock', fontsize=14, fontweight='bold', pad=15)
+    ax.text(8, 12.55, '16 tables | 30+ DTOs | 6 énumérations PostgreSQL | 12 migrations Flyway',
+            fontsize=10, ha='center', color='#555', style='italic')
 
-    # Title / subtitle
-    ax.text(8, 13.5, '16 tables | 30+ DTOs | 6 énumérations PostgreSQL | 11 migrations Flyway', fontsize=10, ha='center', color='#555', style='italic')
-
-    # Section: Géographie
-    ax.text(0.5, 13.0, 'GÉOGRAPHIE', fontsize=10, fontweight='bold', color='#283593', bbox=dict(boxstyle='round,pad=0.15', facecolor='#E8EAF6', edgecolor='#283593'))
-    tables_geo = [
-        ('province', 'Province', 'code UNIQUE', 'nom', '', '1:N zone'),
-        ('zone', 'Zone', 'code UNIQUE', 'nom, province_id FK', '', '1:N colline'),
-        ('colline', 'Colline', 'code UNIQUE', 'nom, zone_id FK', '', '0..1:N agriculteur'),
-    ]
-    y = 12.3
-    for table, desc, pk, fk, extra, rel in tables_geo:
-        rect = FancyBboxPatch((0.5, y), 15, 0.5, boxstyle="round,pad=0.05", facecolor='#E8EAF6', edgecolor='#283593', linewidth=1)
+    def ligne(y, h, table, desc, pk, details, rel, bg, ec):
+        rect = FancyBboxPatch((0.5, y), 15, h, boxstyle="round,pad=0.05",
+                              facecolor=bg, edgecolor=ec, linewidth=1)
         ax.add_patch(rect)
-        ax.text(1, y + 0.25, table, fontsize=10, fontweight='bold', color='#283593')
-        ax.text(2.5, y + 0.25, desc, fontsize=8, color='#333')
-        ax.text(6.5, y + 0.25, f"PK: {pk}  |  FK: {fk}  {extra}", fontsize=7, color='#666')
-        ax.text(13.5, y + 0.25, rel, fontsize=7, color='#283593', style='italic')
-        y -= 0.6
+        ax.text(0.75, y + h/2, table, fontsize=8.5, fontweight='bold', color=ec, va='center')
+        ax.text(2.55, y + h/2, desc, fontsize=7.2, color='#333', va='center')
+        ax.text(6.2, y + h/2, textwrap.fill(f"PK: {pk}", 20), fontsize=5.9,
+                color='#555', va='center', linespacing=1.15)
+        if details:
+            ax.text(8.3, y + h/2, textwrap.fill(details, 44), fontsize=5.6,
+                    color='#555', va='center', linespacing=1.15)
+        ax.text(13.6, y + h/2, textwrap.fill(rel, 17), fontsize=5.6,
+                color=ec, style='italic', va='center', linespacing=1.15)
 
-    # Section: Référentiel
-    ax.text(0.5, 10.3, 'RÉFÉRENTIEL MÉTIER', fontsize=10, fontweight='bold', color='#2E7D32', bbox=dict(boxstyle='round,pad=0.15', facecolor='#E8F5E9', edgecolor='#2E7D32'))
-    tables_ref = [
+    def section(y, titre, bg, ec):
+        ax.text(0.5, y, titre, fontsize=10, fontweight='bold', color=ec,
+                bbox=dict(boxstyle='round,pad=0.15', facecolor=bg, edgecolor=ec))
+
+    # Géographie
+    section(11.85, 'GÉOGRAPHIE', '#E8EAF6', '#283593')
+    geo = [
+        ('province', 'Province', 'code UNIQUE', '', '1:N zone'),
+        ('zone', 'Zone', 'code UNIQUE', 'nom, province_id FK', '1:N colline'),
+        ('colline', 'Colline', 'code UNIQUE', 'nom, zone_id FK', '0..1:N agriculteur'),
+    ]
+    y = 11.25
+    for table, desc, pk, details, rel in geo:
+        ligne(y, 0.48, table, desc, pk, details, rel, '#E8EAF6', '#283593')
+        y -= 0.55
+
+    # Référentiel
+    section(9.35, 'RÉFÉRENTIEL MÉTIER', '#E8F5E9', '#2E7D32')
+    ref = [
         ('engrais_type', 'EngraisType', 'code UNIQUE', 'nom, poids_sac_kg (50.00), prix_subventionne, actif', '1:N lot, 1:N stock'),
-        ('agriculteur', 'Agriculteur', 'numero_identite UNIQUE, telephone UNIQUE', 'nom, prenom, superficie_ha, colline_id FK, est_cooperative', '1:N ticket'),
+        ('agriculteur', 'Agriculteur', 'numero_identite UNIQUE, telephone UNIQUE, email UNIQUE', 'nom, prenom, superficie_ha, colline_id FK, est_cooperative, email (V12)', '1:N ticket'),
         ('depot', 'Depot', 'code UNIQUE', 'nom, niveau (enum PG), colline/zone/province_id, seuil_alerte_min, capacite_max', '1:N ticket, 1:N stock'),
         ('lot', 'Lot', 'numero_lot UNIQUE', 'quantite_initiale, date_fabrication, date_peremption, engrais_type_id FK, date_reception_fomi', '1:N mouvement, 1:N stock_lot'),
     ]
-    y = 9.6
-    for table, desc, pk, fk_extra, rel in tables_ref:
-        rect = FancyBboxPatch((0.5, y), 15, 0.6, boxstyle="round,pad=0.05", facecolor='#E8F5E9', edgecolor='#2E7D32', linewidth=1)
-        ax.add_patch(rect)
-        ax.text(1, y + 0.3, table, fontsize=10, fontweight='bold', color='#2E7D32')
-        ax.text(2.8, y + 0.3, desc, fontsize=8, color='#333')
-        ax.text(7.5, y + 0.2, f"PK: {pk}", fontsize=7, color='#555')
-        ax.text(11.0, y + 0.2, f"FK + détails: {fk_extra}", fontsize=6.5, color='#555', wrap=True)
-        ax.text(13.5, y + 0.2, rel, fontsize=6.5, color='#2E7D32', style='italic', wrap=True)
-        y -= 0.7
+    y = 8.75
+    for table, desc, pk, details, rel in ref:
+        ligne(y, 0.62, table, desc, pk, details, rel, '#E8F5E9', '#2E7D32')
+        y -= 0.65
 
-    # Section: Opérations
-    ax.text(0.5, 6.6, 'OPÉRATIONS & MOUVEMENTS', fontsize=10, fontweight='bold', color='#E65100', bbox=dict(boxstyle='round,pad=0.15', facecolor='#FFF3E0', edgecolor='#E65100'))
-    tables_op = [
+    # Opérations
+    section(6.15, 'OPÉRATIONS & MOUVEMENTS', '#FFF3E0', '#E65100')
+    op = [
         ('ticket', 'Ticket', 'numero_ticket UNIQUE', 'agriculteur_id, depot_retrait_id, statut (enum PG), saison, quantite_commandee/servie, montant_paye', '1:N distribution'),
-        ('distribution', 'Distribution', 'ticket_id FK UNIQUE (1:1 avec mouvement)', 'quantite, depot_id FK, agent_id FK, date_distribution', '1:1 mouvement'),
-        ('mouvement', 'Mouvement', 'idempotency_key UNIQUE (64 car)', 'type (enum PG), lot_id FK, quantite, agent_id FK, depot_source/dest_id FK, annule (bool), reference_annulation_id FK', '1:N audit_log'),
+        ('distribution', 'Distribution', 'ticket_id FK UNIQUE', 'quantite, depot_id FK, agent_id FK, date_distribution (1:1 mouvement)', '1:1 mouvement'),
+        ('mouvement', 'Mouvement', 'idempotency_key UNIQUE (64 car)', 'type (enum PG), lot_id FK, quantite, agent_id FK, depot_source/dest_id FK, annule, reference_annulation_id FK', '1:N audit_log'),
         ('stock', 'Stock (agrégat)', '(depot_id, engrais_type_id) UNIQUE', 'quantite_disponible, updated_at (@PreUpdate)', '1:N mouvement'),
         ('stock_lot', 'StockLot', '(depot_id, lot_id) UNIQUE', 'quantite, updated_at', '1:1 lot, 1:N mouvement'),
     ]
-    y = 5.8
-    for table, desc, pk, fk_extra, rel in tables_op:
-        rect = FancyBboxPatch((0.5, y), 15, 0.55, boxstyle="round,pad=0.05", facecolor='#FFF3E0', edgecolor='#E65100', linewidth=1)
-        ax.add_patch(rect)
-        ax.text(1, y + 0.27, table, fontsize=10, fontweight='bold', color='#E65100')
-        ax.text(3.0, y + 0.27, desc, fontsize=7.5, color='#333')
-        ax.text(7.5, y + 0.15, f"PK: {pk}", fontsize=6.5, color='#555')
-        ax.text(11.0, y + 0.15, f"FK + détails: {fk_extra}", fontsize=6, color='#555', wrap=True)
-        ax.text(13.8, y + 0.15, rel, fontsize=6, color='#E65100', style='italic', wrap=True)
-        y -= 0.65
+    y = 5.55
+    for table, desc, pk, details, rel in op:
+        ligne(y, 0.56, table, desc, pk, details, rel, '#FFF3E0', '#E65100')
+        y -= 0.62
 
-    # Section: Sécurité et Audit
-    ax.text(0.5, 2.5, 'SÉCURITÉ, ALERTES & AUDIT', fontsize=10, fontweight='bold', color='#C62828', bbox=dict(boxstyle='round,pad=0.15', facecolor='#FFEBEE', edgecolor='#C62828'))
-    tables_sec = [
+    # Sécurité et audit
+    section(2.45, 'SÉCURITÉ, ALERTES & AUDIT', '#FFEBEE', '#C62828')
+    sec = [
         ('utilisateur', 'Utilisateur', 'username UNIQUE', 'password_hash (BCrypt), nom_complet, role (enum PG), depot/zone/province_id, actif, soft_delete', '1:N audit_log'),
-        ('alerte', 'Alerte', 'depot_id + type + engrais_type_id (partiel)', 'message, niveau (enum PG), traitee', 'N:1 audit_log'),
-        ('seuil_alerte', 'SeuilAlerte', '(depot_id, engrais_type_id) UNIQUE', 'seuil_min, criticite', '1:N alerte (indirect) via type'),
+        ('alerte', 'Alerte', 'depot_id + type + engrais_type_id', 'message, niveau (enum PG), traitee', 'N:1 audit_log'),
+        ('seuil_alerte', 'SeuilAlerte', '(depot_id, engrais_type_id) UNIQUE', 'seuil_min, criticite', '1:N alerte (indirect)'),
         ('audit_log', 'AuditLog', 'utilisateur_id FK (nullable)', 'action, entity_type, entity_id, ip_address, details_json (JSONB)', 'N:1 utilisateur'),
     ]
-    y = 1.7
-    for table, desc, pk, fk_extra, rel in tables_sec:
-        rect = FancyBboxPatch((0.5, y), 15, 0.5, boxstyle="round,pad=0.05", facecolor='#FFEBEE', edgecolor='#C62828', linewidth=1)
-        ax.add_patch(rect)
-        ax.text(1, y + 0.25, table, fontsize=10, fontweight='bold', color='#C62828')
-        ax.text(3.2, y + 0.25, desc, fontsize=7.5, color='#333')
-        ax.text(7.5, y + 0.15, f"PK: {pk}", fontsize=6.5, color='#555')
-        ax.text(11.0, y + 0.15, f"FK + détails: {fk_extra}", fontsize=6.5, color='#555', wrap=True)
-        ax.text(13.8, y + 0.15, rel, fontsize=6, color='#C62828', style='italic', wrap=True)
-        y -= 0.6
+    y = 1.85
+    for table, desc, pk, details, rel in sec:
+        ligne(y, 0.48, table, desc, pk, details, rel, '#FFEBEE', '#C62828')
+        y -= 0.55
 
     plt.tight_layout()
     plt.savefig(f'{OUT_DIR}/data_dictionary_summary.png', dpi=150, bbox_inches='tight')

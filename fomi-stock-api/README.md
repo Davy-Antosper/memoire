@@ -52,7 +52,16 @@ Connexion : `POST /api/auth/login` avec `{"username":"...","password":"..."}` �
 mvn test          # ou mvn verify
 ```
 
-Les tests d'intégration (206) démarrent un conteneur PostgreSQL éphémère via Testcontainers et couvrent l'ensemble des endpoints et des règles métier. Configuration requise : le fichier `src/test/resources/docker-java.properties` fixe la version d'API Docker (`api.version=1.44`) pour les moteurs Docker récents.
+Les tests d'intégration démarrent un conteneur PostgreSQL éphémère via Testcontainers et couvrent l'ensemble des endpoints et des règles métier. Configuration requise : le fichier `src/test/resources/docker-java.properties` fixe la version d'API Docker (`api.version=1.44`) pour les moteurs Docker récents.
+
+Sans Docker, la suite peut tourner contre une base PostgreSQL locale vide (le schéma et les seeds sont appliqués par Flyway) :
+
+```bash
+sudo -u postgres psql -c "CREATE DATABASE fomi_test OWNER fomi;"
+mvn test -Dfomi.test.localdb=true
+```
+
+Les paramètres de connexion sont surchargeables avec `-Dfomi.test.db.url`, `-Dfomi.test.db.username` et `-Dfomi.test.db.password` (ou `FOMI_TEST_LOCALDB=true`).
 
 ## Règles métier principales
 
@@ -63,6 +72,7 @@ Les tests d'intégration (206) démarrent un conteneur PostgreSQL éphémère vi
 - **Alertes** : générées automatiquement après réception/transfert/distribution — `RUPTURE` (stock 0), `STOCK_BAS` (sous le seuil du dépôt), `DEMANDE_SUP_STOCK` (demande non servie > stock) — et par la tâche planifiée quotidienne (06:00) pour les tickets impayés/servis partiellement depuis plus de 30 jours (`DELAI_DEPASSE`).
 - **Périmètres** : `AGENT_COLLINE` ne distribue que sur son dépôt ; `AGENT_ZONE` que dans sa zone ; réception et transfert réservés à `ADMIN`.
 - **Audit** : toute création de ticket/dépôt et tout mouvement/distribution/utilisateur est journalisé dans `audit_log`.
+- **Notifications email** : chaque changement d'état d'un ticket (`TICKET_CREE`, `TICKET_VALIDE`, `TICKET_REJETE`, `TICKET_EXPIRE`) et chaque distribution envoie un email à l'agriculteur s'il possède une adresse. L'envoi est tracé (`EMAIL_SEND` / `EMAIL_FAILED`) et reste non bloquant : une panne SMTP ne fait pas échouer l'opération métier.
 
 ## Endpoints
 
@@ -93,6 +103,8 @@ Les tests d'intégration (206) démarrent un conteneur PostgreSQL éphémère vi
 | GET | `/api/agriculteurs/{id}` | authentifié |
 | GET | `/api/agriculteurs/recherche?telephone=...` | authentifié |
 | POST | `/api/agriculteurs` | authentifié |
+| PUT | `/api/agriculteurs/{id}` | authentifié |
+| POST | `/api/agriculteurs/{id}/notifier` | ADMIN, SUPERVISEUR, AGENT_ZONE, AGENT_COLLINE |
 
 ### Tickets
 | Méthode | URL | Rôles |
@@ -152,6 +164,29 @@ Les tests d'intégration (206) démarrent un conteneur PostgreSQL éphémère vi
 | `DB_USERNAME` | Utilisateur PostgreSQL (profil `prod`) | `fomi` |
 | `DB_PASSWORD` | Mot de passe PostgreSQL (profil `prod`) | `fomi123` |
 | `PORT` | Port HTTP (profil `prod`, défini par la plateforme) | `8080` |
+| `FOMI_MAIL_ENABLED` | Active l'envoi réel des emails | `false` |
+| `FOMI_MAIL_FROM` | Expéditeur des emails | `no-reply@fomi.bi` |
+| `FOMI_MAIL_SUJET_PREFIX` | Préfixe des sujets | `[FOMI-Stock] ` |
+| `MAIL_HOST` / `MAIL_PORT` | Serveur SMTP | `localhost` / `1025` |
+| `MAIL_USERNAME` / `MAIL_PASSWORD` | Identifiants SMTP | vide |
+| `MAIL_SMTP_AUTH` / `MAIL_SMTP_STARTTLS` | Authentification et TLS SMTP | `false` |
+
+### Notifications email
+
+Les notifications sont **désactivées par défaut** : aucun email n'est envoyé tant que `FOMI_MAIL_ENABLED=true` n'est pas défini. Pour les tester localement, lancer un serveur SMTP de capture (Mailpit, MailHog ou `python -m smtpd -c DebuggingServer -n localhost:1025`) puis démarrer l'API :
+
+```bash
+FOMI_MAIL_ENABLED=true MAIL_HOST=localhost MAIL_PORT=1025 mvn spring-boot:run
+```
+
+Exemple d'envoi manuel :
+
+```bash
+curl -X POST http://localhost:8080/api/agriculteurs/1/notifier \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{"sujet":"Engrais disponible","message":"Votre engrais est prêt au dépôt."}'
+```
 
 ## Déploiement
 
@@ -181,6 +216,6 @@ src/main/java/bi/fomi/stock/
 ├── model/          # Entités JPA et enums
 ├── security/       # JWT, filtres, config
 └── exception/      # Gestion d'erreurs centralisée
-src/main/resources/db/migration/   # Schéma et seeds Flyway (V1 à V6)
-src/test/java/bi/fomi/stock/       # 206 tests d'intégration
+src/main/resources/db/migration/   # Schéma et seeds Flyway (V1 à V12)
+src/test/java/bi/fomi/stock/       # tests d'intégration
 ```

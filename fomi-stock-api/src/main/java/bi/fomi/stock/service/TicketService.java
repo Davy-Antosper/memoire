@@ -37,6 +37,7 @@ public class TicketService {
     private final DepotRepository depotRepository;
     private final EngraisTypeRepository engraisTypeRepository;
     private final AuditLogService auditLogService;
+    private final EmailNotificationService emailNotificationService;
 
     @Transactional
     public TicketResponse creer(TicketRequest req) {
@@ -101,6 +102,7 @@ public class TicketService {
                 "{\"numero\":\"" + ticket.getNumeroTicket() + "\",\"agriculteur\":\""
                         + agriculteur.getNumeroIdentite() + "\",\"quantite\":" + req.quantiteCommandee()
                         + ",\"saison\":\"" + req.saison() + "\"}");
+        emailNotificationService.notifierTicket(ticket, "TICKET_CREE", null);
         return toResponse(ticket);
     }
 
@@ -148,7 +150,10 @@ public class TicketService {
         ticket.setStatut(StatutTicket.ACTIF);
         auditLogService.log("TICKET_ACTIVATE", "Ticket", ticket.getId(),
                 "{\"numero\":\"" + ticket.getNumeroTicket() + "\",\"statut\":\"" + StatutTicket.ACTIF + "\"}");
-        return toResponse(ticketRepository.save(ticket));
+        ticket = ticketRepository.save(ticket);
+        emailNotificationService.notifierTicket(ticket, "TICKET_VALIDE",
+                "Votre ticket est désormais actif : vous pouvez retirer votre engrais au dépôt indiqué.");
+        return toResponse(ticket);
     }
 
     @Transactional
@@ -163,7 +168,10 @@ public class TicketService {
         String details = "{\"numero\":\"" + ticket.getNumeroTicket() + "\",\"statut\":\"" + StatutTicket.REJETE + "\""
                 + (motif != null && !motif.isBlank() ? ",\"motif\":\"" + motif.replace("\"", "'") + "\"" : "") + "}";
         auditLogService.log("TICKET_REJECT", "Ticket", ticket.getId(), details);
-        return toResponse(ticketRepository.save(ticket));
+        ticket = ticketRepository.save(ticket);
+        emailNotificationService.notifierTicket(ticket, "TICKET_REJETE",
+                (motif != null && !motif.isBlank() ? "Motif du rejet : " + motif : null));
+        return toResponse(ticket);
     }
 
     @Transactional
@@ -175,6 +183,8 @@ public class TicketService {
                 ticket.setStatut(StatutTicket.EXPIRE);
                 auditLogService.log("TICKET_EXPIRE", "Ticket", ticket.getId(),
                         "{\"numero\":\"" + ticket.getNumeroTicket() + "\",\"saison\":\"" + saison + "\"}");
+                emailNotificationService.notifierTicket(ticket, "TICKET_EXPIRE",
+                        "La saison " + saison + " est clôturée : votre ticket n'a pas été entièrement servi.");
             }
         }
     }
