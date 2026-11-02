@@ -93,6 +93,33 @@ class EmailNotificationIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
+    void expirationSaisonNotifieAgriculteur() throws Exception {
+        String token = tokenAdmin();
+        long id = node(apiPost("/api/tickets", token, Map.of(
+                "numeroTicket", "TKT-EMAIL-EXPIRE",
+                "agriculteurId", 1,
+                "engraisTypeId", 1,
+                "quantiteCommandee", 2,
+                "montantPaye", 50000,
+                "datePaiement", "2026-04-04",
+                "depotRetraitId", 1,
+                "saison", "2026EX"))).get("id").asLong();
+
+        MvcResult expiration = apiPost("/api/tickets/expirer?saison=2026EX", token, Map.of());
+        assertThat(code(expiration)).isEqualTo(200);
+        assertThat(node(expiration).get("ticketsExpires").asInt()).isEqualTo(1);
+        assertThat(node(apiGet("/api/tickets/" + id, token)).get("statut").asText()).isEqualTo("EXPIRE");
+        verify(mailSenderPort).envoyer(eq("jean.ndayisaba@example.bi"),
+                contains("TKT-EMAIL-EXPIRE"), contains("est maintenant : EXPIRE"));
+    }
+
+    @Test
+    void expirationSaisonInterditeAgentZone() throws Exception {
+        MvcResult result = apiPost("/api/tickets/expirer?saison=2026EX", token("agent.zone"), Map.of());
+        assertThat(code(result)).isEqualTo(403);
+    }
+
+    @Test
     void emailInvalideRefuse() throws Exception {
         MvcResult result = apiPost("/api/agriculteurs", tokenAdmin(), Map.of(
                 "numeroIdentite", "AGR-EMAIL-INVALIDE",

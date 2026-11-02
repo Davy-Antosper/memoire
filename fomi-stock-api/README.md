@@ -112,6 +112,7 @@ Les paramètres de connexion sont surchargeables avec `-Dfomi.test.db.url`, `-Df
 | GET | `/api/tickets?depotId=&statut=` | authentifié |
 | GET | `/api/tickets/{id}` | authentifié |
 | POST | `/api/tickets` | authentifié |
+| POST | `/api/tickets/expirer?saison=...` | ADMIN, SUPERVISEUR |
 
 ### Dépôts
 | Méthode | URL | Rôles |

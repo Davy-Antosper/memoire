@@ -71,6 +71,7 @@ public class SecurityConfig {
                                 "AGENT_COLLINE")
                         .requestMatchers(HttpMethod.POST, "/api/distributions").hasAnyRole("ADMIN", "SUPERVISEUR",
                                 "AGENT_ZONE", "AGENT_COLLINE")
+                        .requestMatchers(HttpMethod.POST, "/api/tickets/expirer").hasAnyRole("ADMIN", "SUPERVISEUR")
                         .requestMatchers(HttpMethod.POST, "/api/tickets").hasAnyRole("ADMIN", "AGENT_ZONE",
                                 "AGENT_COLLINE")
                         .requestMatchers(HttpMethod.GET, "/api/engrais-types/**").authenticated()

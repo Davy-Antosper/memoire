@@ -51,4 +51,14 @@ public class TicketController {
     public TicketResponse rejeter(@PathVariable Long id, @RequestBody(required = false) RejetTicketRequest request) {
         return ticketService.rejeter(id, request != null ? request.motif() : null);
     }
+
+    /**
+     * Clôture une saison : expire les tickets non entièrement servis et notifie
+     * les agriculteurs concernés.
+     */
+    @PostMapping("/expirer")
+    public java.util.Map<String, Object> expirer(@RequestParam String saison) {
+        int expires = ticketService.expirerTickets(saison);
+        return java.util.Map.of("saison", saison, "ticketsExpires", expires);
+    }
 }

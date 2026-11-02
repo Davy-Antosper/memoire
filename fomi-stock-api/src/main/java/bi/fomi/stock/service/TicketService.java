@@ -175,9 +175,10 @@ public class TicketService {
     }
 
     @Transactional
-    public void expirerTickets(String saison) {
+    public int expirerTickets(String saison) {
         List<Ticket> tickets = ticketRepository.findBySaisonAndStatutNotIn(saison,
                 List.of(StatutTicket.ANNULE, StatutTicket.REJETE, StatutTicket.EXPIRE, StatutTicket.SERVI));
+        int expires = 0;
         for (Ticket ticket : tickets) {
             if (ticket.getQuantiteServie() < ticket.getQuantiteCommandee()) {
                 ticket.setStatut(StatutTicket.EXPIRE);
@@ -185,8 +186,10 @@ public class TicketService {
                         "{\"numero\":\"" + ticket.getNumeroTicket() + "\",\"saison\":\"" + saison + "\"}");
                 emailNotificationService.notifierTicket(ticket, "TICKET_EXPIRE",
                         "La saison " + saison + " est clôturée : votre ticket n'a pas été entièrement servi.");
+                expires++;
             }
         }
+        return expires;
     }
 
     @Transactional(readOnly = true)
