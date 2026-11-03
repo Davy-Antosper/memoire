@@ -102,16 +102,19 @@ Les paramètres de connexion sont surchargeables avec `-Dfomi.test.db.url`, `-Df
 | GET | `/api/agriculteurs?page=0&size=50` | authentifié |
 | GET | `/api/agriculteurs/{id}` | authentifié |
 | GET | `/api/agriculteurs/recherche?telephone=...` | authentifié |
-| POST | `/api/agriculteurs` | authentifié |
-| PUT | `/api/agriculteurs/{id}` | authentifié |
-| POST | `/api/agriculteurs/{id}/notifier` | ADMIN, SUPERVISEUR, AGENT_ZONE, AGENT_COLLINE |
+| POST | `/api/agriculteurs` | ADMIN, AGENT_ZONE, AGENT_COLLINE |
+| PUT | `/api/agriculteurs/{id}` | ADMIN, AGENT_ZONE, AGENT_COLLINE |
+| POST | `/api/agriculteurs/{id}/notifier` | ADMIN, AGENT_ZONE, AGENT_COLLINE |
 
 ### Tickets
 | Méthode | URL | Rôles |
 |---------|-----|-------|
 | GET | `/api/tickets?depotId=&statut=` | authentifié |
 | GET | `/api/tickets/{id}` | authentifié |
-| POST | `/api/tickets` | authentifié |
+| POST | `/api/tickets` | ADMIN, AGENT_ZONE, AGENT_COLLINE |
+| PUT | `/api/tickets/{id}` | ADMIN, AGENT_ZONE |
+| PATCH | `/api/tickets/{id}/activer` | ADMIN, SUPERVISEUR |
+| PATCH | `/api/tickets/{id}/rejeter` | ADMIN, SUPERVISEUR |
 | POST | `/api/tickets/expirer?saison=...` | ADMIN, SUPERVISEUR |
 
 ### Dépôts
@@ -131,14 +134,15 @@ Les paramètres de connexion sont surchargeables avec `-Dfomi.test.db.url`, `-Df
 ### Mouvements
 | Méthode | URL | Rôles |
 |---------|-----|-------|
-| POST | `/api/mouvements/reception` | ADMIN |
+| POST | `/api/mouvements/reception` | ADMIN, AGENT_LOGISTIQUE |
 | POST | `/api/mouvements/transfert` | ADMIN |
+| POST | `/api/mouvements/{id}/annuler` | authentifié (règle ADMIN/SUPERVISEUR non appliquée) |
 | GET | `/api/mouvements`, `/api/mouvements/lot/{lotId}` | authentifié |
 
 ### Distributions
 | Méthode | URL | Rôles |
 |---------|-----|-------|
-| POST | `/api/distributions` | authentifié (périmètre selon rôle) |
+| POST | `/api/distributions` | ADMIN, SUPERVISEUR, AGENT_ZONE, AGENT_COLLINE |
 | GET | `/api/distributions/ticket/{ticketId}` | authentifié |
 
 ### Alertes

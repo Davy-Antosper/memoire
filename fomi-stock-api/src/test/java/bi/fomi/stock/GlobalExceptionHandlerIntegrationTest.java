@@ -39,4 +39,11 @@ class GlobalExceptionHandlerIntegrationTest extends BaseIntegrationTest {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.erreur").value("Ressource introuvable"));
     }
+
+    @Test
+    void methodeHttpNonSupporteRenvoie405() throws Exception {
+        mvc.perform(get("/api/auth/login"))
+                .andExpect(status().isMethodNotAllowed())
+                .andExpect(jsonPath("$.erreur").value("Méthode HTTP non autorisée : GET"));
+    }
 }

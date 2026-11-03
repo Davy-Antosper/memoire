@@ -82,7 +82,7 @@ def draw_architecture():
     # Data Layer
     box(1, 0.3, 5.5, 1.4, 'PostgreSQL 16\n16 tables | Enums nommés\nFlyway (12 migrations)\nJSONB pour audit logs',
         '#FCE4EC', '#C62828', 10, True)
-    box(7.5, 0.3, 5.5, 1.4, 'Tests automatisés\nTestcontainers + PostgreSQL\nJUnit 5 + Mockito\n215 tests (dont notifications)',
+    box(7.5, 0.3, 5.5, 1.4, 'Tests automatisés\nTestcontainers + PostgreSQL\nJUnit 5 + Mockito\n218 tests (dont notifications)',
         '#E8EAF6', '#283593', 10, True)
 
     # Arrows
@@ -792,7 +792,7 @@ def draw_deployment_diagram():
 
     # DB tier
     node(3.2, 1.5, 4.6, 1.5, 'PostgreSQL 16', '16 tables + enums / JSONB audit / Index B-tree et composites / Migrations Flyway V1→V12', '#FCE4EC', '#C62828')
-    node(8.4, 1.5, 3.0, 1.5, 'Testcontainers', 'PostgreSQL 16-alpine / JUnit 5 / 215 tests / Docker Java 1.44', '#E8EAF6', '#283593')
+    node(8.4, 1.5, 3.0, 1.5, 'Testcontainers', 'PostgreSQL 16-alpine / JUnit 5 / 218 tests / Docker Java 1.44', '#E8EAF6', '#283593')
     node(12.0, 1.5, 3.2, 1.5, 'Serveur SMTP', 'Notifications email / SMTP 1025 (Mailpit) / Mailjet en production', '#E0F2F1', '#00695C')
 
     # Connections
@@ -814,7 +814,7 @@ def draw_deployment_diagram():
     # DB -> Testcontainers
     conn(7.8, 1.5, 8.4, 1.5, 'Docker')
     # CI note
-    ax.text(8, 0.2, 'Déploiement CI/CD : GitHub Actions (build + test 215) → Docker build → Railway (auto-deploy sur push main)', fontsize=7, ha='center', color='#555', style='italic', bbox=dict(boxstyle='round,pad=0.2', facecolor='#F5F5F5', edgecolor='#CCC'))
+    ax.text(8, 0.2, 'Déploiement CI/CD : GitHub Actions (build + test 218) → Docker build → Railway (auto-deploy sur push main)', fontsize=7, ha='center', color='#555', style='italic', bbox=dict(boxstyle='round,pad=0.2', facecolor='#F5F5F5', edgecolor='#CCC'))
 
     plt.tight_layout()
     plt.savefig(f'{OUT_DIR}/deployment_diagram.png', dpi=150, bbox_inches='tight')
