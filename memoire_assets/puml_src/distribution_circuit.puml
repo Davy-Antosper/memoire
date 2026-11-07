@@ -1,0 +1,25 @@
+@startuml
+title Circuit de distribution des engrais FOMI
+skinparam shadowing false
+skinparam roundCorner 14
+skinparam DefaultFontName "Segoe UI"
+skinparam ArrowColor #546E7A
+skinparam linetype ortho
+skinparam nodesep 35
+skinparam ranksep 55
+skinparam rectangleBorderColor #90A4AE
+skinparam rectangleBackgroundColor #FFFFFF
+
+rectangle "NIVEAU 1\nUsine FOMI de Maramvya\nProduction et stockage central" as USINE #E3F2FD
+rectangle "NIVEAU 2\nDepots provinciaux (BPEAE)\nStockage regional" as PROV #E8F5E9
+rectangle "NIVEAU 3\nDepots zonaux\nTerminus logistique de FOMI" as ZONE #FFFDE7
+rectangle "NIVEAU 4\nDepots collinaires\nStockage de proximite" as COLL #FFF3E0
+rectangle "Agriculteur\nBeneficiaire final" as AGR #F3E5F5
+
+' Disposition : deux rangees de deux niveaux, puis le beneficiaire
+USINE -right-> PROV : "Reception FOMI"
+PROV -down-> ZONE : "Transfert"
+ZONE -left-> COLL : "Transfert"
+COLL -down-> AGR : "Distribution"
+
+@enduml

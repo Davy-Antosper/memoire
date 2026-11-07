@@ -1,0 +1,225 @@
+@startuml
+!theme vibrant
+title Modèle physique de données — Système FOMI-Stock
+skinparam shadowing false
+skinparam roundCorner 10
+skinparam DefaultFontName "Segoe UI"
+skinparam ArrowColor #607D8B
+skinparam EntityBorderColor #90A4AE
+skinparam EntityBackgroundColor #FFFFFF
+hide methods
+hide stereotypes
+
+' ===== Référentiel géographique =====
+entity "province" as PROV {
+  * id : BIGSERIAL <<PK>>
+  --
+  code : VARCHAR(10) <<UNIQUE>>
+  nom : VARCHAR(100)
+  created_at : TIMESTAMP
+}
+entity "zone" as ZONE {
+  * id : BIGSERIAL <<PK>>
+  --
+  code : VARCHAR(20) <<UNIQUE>>
+  nom : VARCHAR(100)
+  province_id : BIGINT <<FK>>
+  created_at : TIMESTAMP
+}
+entity "colline" as COLL {
+  * id : BIGSERIAL <<PK>>
+  --
+  code : VARCHAR(30) <<UNIQUE>>
+  nom : VARCHAR(100)
+  zone_id : BIGINT <<FK>>
+  created_at : TIMESTAMP
+}
+
+' ===== Dépôts et intrants =====
+entity "depot" as DEPOT {
+  * id : BIGSERIAL <<PK>>
+  --
+  code : VARCHAR(30) <<UNIQUE>>
+  nom : VARCHAR(150)
+  niveau : niveau_depot
+  province_id : BIGINT <<FK>>
+  zone_id : BIGINT <<FK>>
+  colline_id : BIGINT <<FK>>
+  seuil_alerte_min : INTEGER
+  actif : BOOLEAN
+}
+entity "engrais_type" as ENG {
+  * id : BIGSERIAL <<PK>>
+  --
+  code : VARCHAR(20) <<UNIQUE>>
+  nom : VARCHAR(100)
+  poids_sac_kg : DECIMAL(8,2)
+  prix_subventionne : DECIMAL(12,2)
+  actif : BOOLEAN
+}
+entity "lot" as LOT {
+  * id : BIGSERIAL <<PK>>
+  --
+  numero_lot : VARCHAR(50) <<UNIQUE>>
+  engrais_type_id : BIGINT <<FK>>
+  quantite_initiale : INTEGER
+  date_fabrication : DATE
+  date_peremption : DATE
+  date_reception_fomi : TIMESTAMP
+}
+
+' ===== Stocks =====
+entity "stock" as STOCK {
+  * id : BIGSERIAL <<PK>>
+  --
+  depot_id : BIGINT <<FK>>
+  engrais_type_id : BIGINT <<FK>>
+  quantite_disponible : INTEGER
+  updated_at : TIMESTAMP
+  <<UNIQUE (depot_id, engrais_type_id)>>
+}
+entity "stock_lot" as SLOT {
+  * id : BIGSERIAL <<PK>>
+  --
+  depot_id : BIGINT <<FK>>
+  lot_id : BIGINT <<FK>>
+  quantite : INTEGER
+  updated_at : TIMESTAMP
+  <<UNIQUE (depot_id, lot_id)>>
+}
+
+' ===== Agriculteurs =====
+entity "agriculteur" as AGR {
+  * id : BIGSERIAL <<PK>>
+  --
+  numero_identite : VARCHAR(30) <<UNIQUE>>
+  nom : VARCHAR(100)
+  prenom : VARCHAR(100)
+  telephone : VARCHAR(20)
+  email : VARCHAR(150)
+  colline_id : BIGINT <<FK>>
+  est_cooperative : BOOLEAN
+}
+
+' ===== Tickets et distribution =====
+entity "ticket" as TICKET {
+  * id : BIGSERIAL <<PK>>
+  --
+  numero_ticket : VARCHAR(50) <<UNIQUE>>
+  agriculteur_id : BIGINT <<FK>>
+  engrais_type_id : BIGINT <<FK>>
+  quantite_commandee : INTEGER
+  quantite_servie : INTEGER
+  montant_paye : DECIMAL(12,2)
+  date_paiement : DATE
+  depot_retrait_id : BIGINT <<FK>>
+  statut : statut_ticket
+  saison : VARCHAR(10)
+}
+entity "distribution" as DIST {
+  * id : BIGSERIAL <<PK>>
+  --
+  ticket_id : BIGINT <<FK>>
+  lot_id : BIGINT <<FK>>
+  depot_id : BIGINT <<FK>>
+  quantite : INTEGER
+  agent_id : BIGINT <<FK>>
+  date_distribution : TIMESTAMP
+  reference_mouvement_id : BIGINT <<FK, UNIQUE>>
+}
+
+' ===== Traçabilité =====
+entity "utilisateur" as USER {
+  * id : BIGSERIAL <<PK>>
+  --
+  username : VARCHAR(50) <<UNIQUE>>
+  password_hash : VARCHAR(255)
+  nom_complet : VARCHAR(150)
+  role : role_utilisateur
+  depot_id : BIGINT <<FK>>
+  zone_id : BIGINT <<FK>>
+  province_id : BIGINT <<FK>>
+  actif : BOOLEAN
+}
+entity "mouvement" as MVT {
+  * id : BIGSERIAL <<PK>>
+  --
+  type : type_mouvement
+  lot_id : BIGINT <<FK>>
+  engrais_type_id : BIGINT <<FK>>
+  depot_source_id : BIGINT <<FK>>
+  depot_dest_id : BIGINT <<FK>>
+  quantite : INTEGER
+  agent_id : BIGINT <<FK>>
+  ticket_id : BIGINT <<FK>>
+  idempotency_key : VARCHAR(64) <<UNIQUE>>
+  date_mouvement : TIMESTAMP
+}
+entity "audit_log" as AUDIT {
+  * id : BIGSERIAL <<PK>>
+  --
+  utilisateur_id : BIGINT <<FK>>
+  action : VARCHAR(100)
+  entity_type : VARCHAR(50)
+  entity_id : BIGINT
+  ip_address : VARCHAR(45)
+  details_json : JSONB
+  created_at : TIMESTAMP
+}
+entity "alerte" as ALERTE {
+  * id : BIGSERIAL <<PK>>
+  --
+  depot_id : BIGINT <<FK>>
+  engrais_type_id : BIGINT <<FK>>
+  type : type_alerte
+  message : VARCHAR(500)
+  niveau : niveau_alerte
+  traitee : BOOLEAN
+}
+entity "seuil_alerte" as SEUIL {
+  * id : BIGSERIAL <<PK>>
+  --
+  depot_id : BIGINT <<FK>>
+  engrais_type_id : BIGINT <<FK>>
+  seuil_min : INTEGER
+  <<UNIQUE (depot_id, engrais_type_id)>>
+}
+
+' ===== Relations =====
+PROV ||--o{ ZONE
+ZONE ||--o{ COLL
+COLL ||--o{ AGR
+COLL ||--o{ DEPOT
+ZONE ||--o{ DEPOT
+PROV ||--o{ DEPOT
+
+ENG ||--o{ LOT
+ENG ||--o{ STOCK
+ENG ||--o{ TICKET
+ENG ||--o{ MVT
+ENG ||--o{ ALERTE
+ENG ||--o{ SEUIL
+
+DEPOT ||--o{ STOCK
+DEPOT ||--o{ SLOT
+DEPOT ||--o{ TICKET
+DEPOT ||--o{ DIST
+DEPOT ||--o{ MVT
+DEPOT ||--o{ ALERTE
+DEPOT ||--o{ SEUIL
+
+LOT ||--o{ SLOT
+LOT ||--o{ DIST
+LOT ||--o{ MVT
+
+AGR ||--o{ TICKET
+
+TICKET ||--o{ DIST
+TICKET ||--o{ MVT
+
+USER ||--o{ MVT
+USER ||--o{ DIST
+USER ||--o{ AUDIT
+
+MVT ||--|| DIST
+@enduml

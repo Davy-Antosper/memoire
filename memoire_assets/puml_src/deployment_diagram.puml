@@ -1,0 +1,52 @@
+@startuml
+title Diagramme de déploiement — Système FOMI-Stock
+skinparam shadowing false
+skinparam roundCorner 12
+skinparam DefaultFontName "Segoe UI"
+skinparam ArrowColor #607D8B
+skinparam NodeBorderColor #90A4AE
+skinparam NodeBackgroundColor #F7FBFF
+skinparam DatabaseBorderColor #90A4AE
+skinparam DatabaseBackgroundColor #FFF8E1
+skinparam ComponentBorderColor #78909C
+skinparam ComponentBackgroundColor #FFFFFF
+
+' ---- Postes clients ----
+node "Poste de travail\n(navigateur web)" as CLIENT {
+  component "Application React\n(Vite, port 5173 en dev)" as WEB
+}
+
+node "Terminal mobile\n(prévu)" as MOBILE {
+  component "Application mobile\n(Expo / React Native)" as APP
+}
+
+' ---- Serveur d'application ----
+node "Conteneur Docker\n(eclipse-temurin 21-jre)" as DOCKER {
+  component "API REST Spring Boot 3.3.5\n(Java 21, port 8080)" as API
+  component "Swagger UI\n(documentation API)" as SWAGGER
+}
+
+' ---- Données ----
+database "PostgreSQL 16" as PG {
+  artifact "Base fomi_stock\n16 tables" as SCHEMA
+  artifact "Migrations Flyway\nV1 a V12" as FLYWAY
+}
+
+' ---- Services externes ----
+cloud "Service SMTP\n(Mailpit en local, port 1025)" as SMTP
+
+' ---- Intégration continue ----
+node "GitHub Actions\n(ubuntu-24.04, JDK 21)" as CI {
+  component "Compilation Maven\net tests (218 tests)" as BUILD
+}
+
+' ---- Relations ----
+CLIENT --> API : HTTPS / REST (JSON)
+MOBILE --> API : HTTPS / REST (JSON)
+SWAGGER --> API
+API --> PG : JDBC / Hibernate
+API --> SMTP : SMTP (notifications)
+API ..> FLYWAY : exécute au démarrage
+CI --> BUILD : mvn verify
+BUILD ..> DOCKER : image Docker
+@enduml

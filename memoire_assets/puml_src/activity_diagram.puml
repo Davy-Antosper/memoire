@@ -1,0 +1,74 @@
+@startuml
+title Diagramme d'activités — Cycle de vie d'un ticket d'engrais
+skinparam shadowing false
+skinparam roundCorner 12
+skinparam DefaultFontName "Segoe UI"
+skinparam ArrowColor #607D8B
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #90A4AE
+skinparam SwimlaneBorderColor #B0BEC5
+skinparam conditionStyle inside
+
+|Agriculteur|
+start
+:Se rendre au dépôt de colline;
+:Demander un ticket d'engrais;
+
+|Agent colline|
+:Enregistrer la demande;
+:Créer le ticket;
+
+|Système|
+:Vérifier les règles métier
+(R22 : plafond superficie x 150 kg/ha,
+R6 : un ticket par saison et engrais);
+
+if (Demande conforme ?) then (non)
+  :Refuser la demande;
+  stop
+else (oui)
+  :Enregistrer le ticket
+  (statut EN_ATTENTE_DE_VALIDATION);
+  :Notifier l'agriculteur;
+endif
+
+|Agent zone|
+:Examiner la demande;
+
+if (Demande validée ?) then (oui)
+  |Système|
+  :Passer le ticket à ACTIF;
+  :Notifier l'agriculteur;
+else (non)
+  |Système|
+  :Passer le ticket à REJETE;
+  :Notifier l'agriculteur;
+  stop
+endif
+
+|Agent colline|
+:Distribuer les sacs;
+
+|Système|
+:Sortir les lots en FIFO
+(le plus ancien d'abord);
+:Mettre à jour le stock;
+:Enregistrer le mouvement;
+:Calculer le statut
+(PARTIEL ou SERVI);
+
+if (Ticket entièrement servi ?) then (oui)
+  :Déclarer le ticket SERVI;
+else (non)
+  :Déclarer le ticket PARTIEL;
+  :Attendre le prochain retrait;
+endif
+
+|Agriculteur|
+:Retirer l'engrais;
+
+|Système|
+:Clôturer la saison
+(expirer les tickets non servis);
+stop
+@enduml

@@ -1,0 +1,72 @@
+@startuml
+title Cas d'utilisation — Système FOMI-Stock
+skinparam shadowing false
+skinparam roundCorner 14
+skinparam DefaultFontName "Segoe UI"
+skinparam ArrowColor #607D8B
+skinparam ActorBorderColor #455A64
+skinparam UsecaseBorderColor #90A4AE
+skinparam UsecaseBackgroundColor #FFFFFF
+skinparam PackageBorderColor #B0BEC5
+skinparam rectangleBorderColor #90A4AE
+
+' ---- Acteurs principaux (gauche) ----
+actor "Agent\ncolline" as ACO
+actor "Agent\nzone" as AZO
+actor "Agent\nlogistique" as ALO
+
+' ---- Acteurs secondaires (droite) ----
+actor "Administrateur" as ADM
+actor "Superviseur" as SUP
+actor "Agriculteur" as AGR
+
+rectangle "Système FOMI-Stock" {
+
+  usecase "Se connecter" as UC_AUTH
+
+  usecase "Créer un ticket" as UC_CREER
+  usecase "Valider un ticket" as UC_VALIDER
+  usecase "Rejeter un ticket" as UC_REJETER
+  usecase "Consulter un ticket" as UC_CONSULT
+
+  usecase "Réceptionner un lot" as UC_RECEP
+  usecase "Transférer du stock" as UC_TRANSF
+  usecase "Consulter le stock" as UC_STOCK
+
+  usecase "Distribuer en FIFO" as UC_DISTRIB
+
+  usecase "Traiter les alertes" as UC_ALERTE
+  usecase "Consulter les statistiques" as UC_STATS
+  usecase "Gérer les utilisateurs" as UC_USERS
+  usecase "Consulter l'audit" as UC_AUDIT
+
+  ' relations entre cas
+  UC_CREER ..> UC_AUTH : <<include>>
+  UC_VALIDER ..> UC_AUTH : <<include>>
+  UC_DISTRIB ..> UC_STOCK : <<include>>
+  UC_VALIDER ..> UC_AUDIT : <<include>>
+}
+
+' ---- Associations ----
+ACO --> UC_CREER
+ACO --> UC_DISTRIB
+ACO --> UC_STOCK
+ACO --> UC_ALERTE
+
+AZO --> UC_VALIDER
+AZO --> UC_REJETER
+AZO --> UC_DISTRIB
+AZO --> UC_ALERTE
+
+ALO --> UC_RECEP
+ALO --> UC_TRANSF
+ALO --> UC_STOCK
+
+AGR --> UC_CONSULT
+
+SUP --> UC_STATS
+SUP --> UC_AUDIT
+
+ADM --> UC_USERS
+ADM --> UC_STATS
+@enduml

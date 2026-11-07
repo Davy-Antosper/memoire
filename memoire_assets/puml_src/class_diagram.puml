@@ -1,0 +1,143 @@
+@startuml
+!theme toy
+title Diagramme de classes — Système de gestion des stocks FOMI
+skinparam shadowing true
+skinparam roundCorner 14
+skinparam DefaultFontName "Segoe UI"
+skinparam linetype ortho
+skinparam nodesep 35
+skinparam ranksep 45
+skinparam ArrowColor #546E7A
+hide circle
+hide empty members
+
+' --- Directions imposées pour éviter les croisements ---
+Province -up-> Zone
+Zone -up-> Colline
+Colline -up-> Agriculteur
+
+class Province {
+  + id : Long
+  + code : String
+  + nom : String
+}
+class Zone {
+  + id : Long
+  + code : String
+  + nom : String
+}
+class Colline {
+  + id : Long
+  + code : String
+  + nom : String
+}
+class Agriculteur {
+  + id : Long
+  + numeroIdentite : String
+  + nom : String
+  + prenom : String
+  + telephone : String
+  + email : String
+  + estCooperative : Boolean
+  + superficieHa : BigDecimal
+}
+class Utilisateur {
+  + id : Long
+  + username : String
+  + nomComplet : String
+  + role : RoleUtilisateur
+  + getAuthorities() : Collection
+}
+class EngraisType {
+  + id : Long
+  + code : String
+  + nom : String
+  + poidsSacKg : BigDecimal
+  + prixSubventionne : BigDecimal
+  + actif : Boolean
+}
+class Lot {
+  + id : Long
+  + numeroLot : String
+  + quantiteInitiale : Integer
+  + datePeremption : LocalDate
+  + dateReceptionFomi : LocalDateTime
+}
+class Depot {
+  + id : Long
+  + code : String
+  + nom : String
+  + niveau : NiveauDepot
+  + seuilAlerteMin : Integer
+  + capaciteMax : Integer
+  + actif : Boolean
+}
+class Stock {
+  + id : Long
+  + quantiteDisponible : Integer
+}
+class StockLot {
+  + id : Long
+  + quantite : Integer
+}
+class Ticket {
+  + id : Long
+  + numeroTicket : String
+  + quantiteCommandee : Integer
+  + quantiteServie : Integer
+  + statut : StatutTicket
+  + saison : String
+  + getQuantiteRestante() : int
+  + mettreAJourStatut() : void
+}
+class Mouvement {
+  + id : Long
+  + type : TypeMouvement
+  + quantite : Integer
+  + idempotencyKey : String
+  + annule : Boolean
+}
+class Distribution {
+  + id : Long
+  + quantite : Integer
+  + dateDistribution : LocalDateTime
+}
+class Alerte {
+  + id : Long
+  + type : TypeAlerte
+  + message : String
+  + niveau : NiveauAlerte
+  + traitee : Boolean
+}
+class SeuilAlerte {
+  + id : Long
+  + seuilMin : Integer
+}
+class AuditLog {
+  + id : Long
+  + action : String
+  + entityType : String
+  + entityId : Long
+}
+
+' --- Relations réelles uniquement ---
+Agriculteur "1" -up- "0..*" Ticket : demande
+EngraisType "1" -up- "0..*" Ticket : concerne
+Depot "1" -up- "0..*" Ticket : retrait
+Ticket "1" -up- "0..*" Distribution : donne lieu
+Lot "1" -up- "0..*" Distribution : fournit
+Utilisateur "1" -up- "0..*" Distribution : enregistre
+
+Depot "1" -down- "0..*" Stock : detient
+EngraisType "1" -down- "0..*" Stock : type
+Depot "1" -down- "0..*" StockLot : stocke
+Lot "1" -down- "0..*" StockLot : suit
+Lot "1" -left- "0..*" Mouvement : concerne
+Depot "1" -left- "0..*" Mouvement : source / destination
+Utilisateur "1" -left- "0..*" Mouvement : execute
+Mouvement "1" -right- "0..1" Distribution : reference
+
+Depot "1" -down- "0..*" SeuilAlerte : configure
+EngraisType "1" -right- "0..*" Alerte : concerne
+Utilisateur "1" -right- "0..*" AuditLog : trace
+@enduml
