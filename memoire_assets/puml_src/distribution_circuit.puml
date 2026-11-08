@@ -9,17 +9,18 @@ skinparam nodesep 35
 skinparam ranksep 55
 skinparam rectangleBorderColor #90A4AE
 skinparam rectangleBackgroundColor #FFFFFF
+scale 2
 
-rectangle "NIVEAU 1\nUsine FOMI de Maramvya\nProduction et stockage central" as USINE #E3F2FD
+rectangle "NIVEAU 1\nUsine FOMI de Maramvya\nStockage central" as USINE #E3F2FD
 rectangle "NIVEAU 2\nDepots provinciaux (BPEAE)\nStockage regional" as PROV #E8F5E9
-rectangle "NIVEAU 3\nDepots zonaux\nTerminus logistique de FOMI" as ZONE #FFFDE7
-rectangle "NIVEAU 4\nDepots collinaires\nStockage de proximite" as COLL #FFF3E0
+rectangle "NIVEAU 3\nDepots de zone\nDernier stockage fixe de FOMI" as ZONE #FFFDE7
+rectangle "Points de distribution collinaires\nLivraison ephemere, sans depot\nle jour de la distribution" as COLL #FFF3E0
 rectangle "Agriculteur\nBeneficiaire final" as AGR #F3E5F5
 
-' Disposition : deux rangees de deux niveaux, puis le beneficiaire
+' Trois niveaux de stockage fixes, puis la distribution finale
 USINE -right-> PROV : "Reception FOMI"
 PROV -down-> ZONE : "Transfert"
-ZONE -left-> COLL : "Transfert"
+ZONE -left-> COLL : "Acheminement"
 COLL -down-> AGR : "Distribution"
 
 @enduml
