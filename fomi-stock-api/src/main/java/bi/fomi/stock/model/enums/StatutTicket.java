@@ -9,6 +9,5 @@ public enum StatutTicket {
     EN_ATTENTE,
     PARTIEL,
     SERVI,
-    RECLAMATION,
     ANNULE
 }

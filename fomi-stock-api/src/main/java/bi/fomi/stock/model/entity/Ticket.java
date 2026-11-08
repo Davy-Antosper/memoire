@@ -103,8 +103,8 @@ public class Ticket {
     }
 
     public void mettreAJourStatut() {
-        if (statut == StatutTicket.ANNULE || statut == StatutTicket.RECLAMATION
-                || statut == StatutTicket.REJETE || statut == StatutTicket.EXPIRE) {
+        if (statut == StatutTicket.ANNULE || statut == StatutTicket.REJETE
+                || statut == StatutTicket.EXPIRE) {
             return;
         }
         if (quantiteServie == 0) {

@@ -14,7 +14,6 @@ const STATUT_TONES = {
   EN_ATTENTE: 'neutral',
   PARTIEL: 'amber',
   SERVI: 'green',
-  RECLAMATION: 'red',
   ANNULE: 'neutral'
 }
 
@@ -73,9 +72,9 @@ export default function Suivi() {
               <tbody>
                 <tr><th>Agriculteur</th><td>{ticket.agriculteurNomComplet}</td></tr>
                 <tr><th>Engrais</th><td>{ticket.engraisTypeNom} ({ticket.engraisTypeCode})</td></tr>
-                <tr><th>Quantité commandée</th><td className="num">{ticket.quantiteCommandee} kg</td></tr>
-                <tr><th>Quantité servie</th><td className="num">{ticket.quantiteServie} kg</td></tr>
-                <tr><th>Reste à servir</th><td className="num">{ticket.quantiteRestante} kg</td></tr>
+                <tr><th>Quantité commandée</th><td className="num">{ticket.quantiteCommandee} sacs</td></tr>
+                <tr><th>Quantité servie</th><td className="num">{ticket.quantiteServie} sacs</td></tr>
+                <tr><th>Reste à servir</th><td className="num">{ticket.quantiteRestante} sacs</td></tr>
                 <tr>
                   <th>Date de paiement</th>
                   <td>{ticket.datePaiement ? new Date(ticket.datePaiement).toLocaleDateString('fr-FR') : '—'}</td>

@@ -13,7 +13,6 @@ const STATUT_TONES = {
   EN_ATTENTE: 'neutral',
   PARTIEL: 'amber',
   SERVI: 'green',
-  RECLAMATION: 'red',
   ANNULE: 'neutral'
 }
 
@@ -241,7 +240,7 @@ export default function Tickets() {
             <Field label="Numéro du ticket">
               <input value={form.numeroTicket} onChange={set('numeroTicket')} placeholder="TKT-2026-0001" required disabled={!!editing} />
             </Field>
-            <Field label="Quantité commandée (kg)">
+            <Field label="Quantité commandée (sacs de 25 kg)">
               <input type="number" min="1" value={form.quantiteCommandee} onChange={set('quantiteCommandee')} required />
             </Field>
             <Field label="Montant payé (BIF)">
@@ -335,8 +334,8 @@ export default function Tickets() {
         <div className="card">
           <h2>Ticket {selected.numeroTicket} — {selected.agriculteurNomComplet}</h2>
           <p className="muted">
-            Engrais {selected.engraisTypeCode} · Commandé {selected.quantiteCommandee} kg · Servi {selected.quantiteServie} ·
-            Restant {selected.quantiteRestante} · Payé {Number(selected.montantPaye || 0).toLocaleString('fr-FR')} BIF ·
+            Engrais {selected.engraisTypeCode} · Commandé {selected.quantiteCommandee} sacs · Servi {selected.quantiteServie} sacs ·
+            Restant {selected.quantiteRestante} sacs · Payé {Number(selected.montantPaye || 0).toLocaleString('fr-FR')} BIF ·
             Retrait {selected.depotRetraitCode} · Saison {selected.saison || '—'}
           </p>
           {!distributions ? (
