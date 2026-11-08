@@ -13,7 +13,7 @@ class MouvementIntegrationTest extends BaseIntegrationTest {
     @Test
     void receptionAjouteAuStock() throws Exception {
         String token = tokenAdmin();
-        long avant = stockDepot(token, 2, "UREE");
+        long avant = stockDepot(token, 2, "IMBURA");
         assertThat(avant).isEqualTo(1200);
 
         MvcResult result = apiPost("/api/mouvements/reception", token, Map.of(
@@ -25,11 +25,11 @@ class MouvementIntegrationTest extends BaseIntegrationTest {
         JsonNode m = node(result);
         assertThat(m.get("type").asText()).isEqualTo("RECEPTION_FOMI");
         assertThat(m.get("quantite").asInt()).isEqualTo(10);
-        assertThat(m.get("depotDestCode").asText()).isEqualTo("DEP-BUB-P");
-        assertThat(m.get("lotNumero").asText()).isEqualTo("LOT-UREE-2026-001");
+        assertThat(m.get("depotDestCode").asText()).isEqualTo("DEP-BUJ-P");
+        assertThat(m.get("lotNumero").asText()).isEqualTo("LOT-IMBURA-2026-001");
         assertThat(m.get("agentUsername").asText()).isEqualTo("admin");
 
-        assertThat(stockDepot(token, 2, "UREE")).isEqualTo(1210);
+        assertThat(stockDepot(token, 2, "IMBURA")).isEqualTo(1210);
     }
 
     @Test
@@ -102,8 +102,8 @@ class MouvementIntegrationTest extends BaseIntegrationTest {
     @Test
     void transfertMetAJourSourceEtDest() throws Exception {
         String token = tokenAdmin();
-        assertThat(stockDepot(token, 1, "UREE")).isEqualTo(1500);
-        assertThat(stockDepot(token, 4, "UREE")).isEqualTo(400);
+        assertThat(stockDepot(token, 1, "IMBURA")).isEqualTo(1500);
+        assertThat(stockDepot(token, 4, "IMBURA")).isEqualTo(400);
 
         MvcResult result = apiPost("/api/mouvements/transfert", token, Map.of(
                 "lotId", 1,
@@ -118,8 +118,8 @@ class MouvementIntegrationTest extends BaseIntegrationTest {
         assertThat(array.get(0).get("depotSourceCode").asText()).isEqualTo("DEP-GIT-P");
         assertThat(array.get(0).get("depotDestCode").asText()).isEqualTo("DEP-GIT-Z");
 
-        assertThat(stockDepot(token, 1, "UREE")).isEqualTo(1400);
-        assertThat(stockDepot(token, 4, "UREE")).isEqualTo(500);
+        assertThat(stockDepot(token, 1, "IMBURA")).isEqualTo(1400);
+        assertThat(stockDepot(token, 4, "IMBURA")).isEqualTo(500);
     }
 
     @Test

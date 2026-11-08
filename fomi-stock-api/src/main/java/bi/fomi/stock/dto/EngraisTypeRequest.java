@@ -12,5 +12,6 @@ public record EngraisTypeRequest(
         @NotBlank String nom,
         @NotNull @Positive BigDecimal poidsSacKg,
         @NotNull @DecimalMin("0.01") BigDecimal prixSubventionne,
+        Boolean prixAConfirmer,
         Boolean actif) {
 }

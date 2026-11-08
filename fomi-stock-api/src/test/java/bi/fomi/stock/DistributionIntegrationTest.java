@@ -160,12 +160,16 @@ class DistributionIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
-    void distributionTicketReclamationRefusee() throws Exception {
-        MvcResult result = apiPost("/api/distributions", tokenAdmin(), Map.of(
+    void distributionTicketAvecReclamationOuverteRestePossible() throws Exception {
+        String token = tokenAdmin();
+        MvcResult result = apiPost("/api/distributions", token, Map.of(
                 "ticketId", 4,
                 "depotId", 8,
                 "quantite", 1));
-        assertThat(code(result)).isEqualTo(400);
+        assertThat(result.getResponse().getStatus()).isEqualTo(200);
+        JsonNode ticket = node(apiGet("/api/tickets/4", token));
+        assertThat(ticket.get("statut").asText()).isEqualTo("PARTIEL");
+        assertThat(ticket.get("quantiteRestante").asInt()).isEqualTo(3);
     }
 
     @Test

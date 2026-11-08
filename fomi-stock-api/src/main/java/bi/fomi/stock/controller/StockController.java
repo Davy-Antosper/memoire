@@ -1,8 +1,9 @@
 package bi.fomi.stock.controller;
 
 import bi.fomi.stock.dto.StockResponse;
-import bi.fomi.stock.exception.ResourceNotFoundException;
+import bi.fomi.stock.model.entity.SeuilAlerte;
 import bi.fomi.stock.model.entity.Stock;
+import bi.fomi.stock.repository.SeuilAlerteRepository;
 import bi.fomi.stock.repository.StockRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,6 +13,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/stocks")
@@ -20,6 +23,7 @@ import java.util.List;
 public class StockController {
 
     private final StockRepository stockRepository;
+    private final SeuilAlerteRepository seuilAlerteRepository;
 
     @GetMapping
     public List<StockResponse> lister(@RequestParam(required = false) Long depotId,
@@ -34,19 +38,29 @@ public class StockController {
         } else {
             stocks = stockRepository.findAll();
         }
-        return stocks.stream().map(StockController::toResponse).toList();
+        return stocks.stream().map(this::toResponse).toList();
     }
 
     @GetMapping("/disponibles")
     public List<StockResponse> disponibles(@RequestParam Long engraisTypeId) {
         return stockRepository.findByEngraisTypeIdAndQuantiteDisponibleGreaterThan(engraisTypeId, 0).stream()
-                .map(StockController::toResponse)
+                .map(this::toResponse)
                 .toList();
     }
 
-    private static StockResponse toResponse(Stock s) {
-        return new StockResponse(s.getDepot().getId(), s.getDepot().getCode(), s.getDepot().getNom(),
-                s.getEngraisType().getId(), s.getEngraisType().getCode(), s.getEngraisType().getNom(),
-                s.getQuantiteDisponible(), s.getDepot().getSeuilAlerteMin(), s.getUpdatedAt());
+    private StockResponse toResponse(Stock s) {
+        Long depotId = s.getDepot().getId();
+        Long engraisTypeId = s.getEngraisType().getId();
+        // Seuil propre au couple dépôt + produit, avec repli sur le seuil du dépôt.
+        Map<Long, Integer> seuils = seuilAlerteRepository.findByDepotId(depotId).stream()
+                .collect(Collectors.toMap(
+                        sa -> sa.getEngraisType().getId(),
+                        SeuilAlerte::getSeuilMin,
+                        (a, b) -> a));
+        return new StockResponse(depotId, s.getDepot().getCode(), s.getDepot().getNom(),
+                engraisTypeId, s.getEngraisType().getCode(), s.getEngraisType().getNom(),
+                s.getQuantiteDisponible(),
+                seuils.getOrDefault(engraisTypeId, s.getDepot().getSeuilAlerteMin()),
+                s.getUpdatedAt());
     }
 }

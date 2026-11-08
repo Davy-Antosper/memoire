@@ -64,6 +64,13 @@ public class Ticket {
     @Column(name = "superficie_ha")
     private java.math.BigDecimal superficieHa;
 
+    @Column(name = "motif_rejet", length = 500)
+    private String motifRejet;
+
+    @Column(name = "est_demo", nullable = false)
+    @Builder.Default
+    private Boolean estDemo = false;
+
     @Column(name = "date_creation", nullable = false)
     private LocalDateTime dateCreation;
 

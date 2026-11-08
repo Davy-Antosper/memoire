@@ -84,7 +84,6 @@ export default function Login() {
                 onChange={(e) => setUsername(e.target.value)}
                 autoFocus
                 autoComplete="username"
-                placeholder="admin"
               />
             </label>
             <label className="field">

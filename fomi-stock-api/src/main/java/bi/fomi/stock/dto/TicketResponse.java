@@ -21,5 +21,7 @@ public record TicketResponse(
         StatutTicket statut,
         String saison,
         BigDecimal superficieHa,
+        String motifRejet,
+        Boolean estDemo,
         LocalDateTime dateCreation) {
 }

@@ -33,8 +33,12 @@ class TicketIntegrationTest extends BaseIntegrationTest {
         MvcResult result = apiGet("/api/tickets?statut=PAYE", tokenAdmin());
         assertThat(code(result)).isEqualTo(200);
         JsonNode array = node(result).get("content");
-        assertThat(array.size()).isEqualTo(1);
-        assertThat(array.get(0).get("numeroTicket").asText()).isEqualTo("TKT-2026-1251");
+        assertThat(array.size()).isEqualTo(2);
+        java.util.Set<String> numeros = new java.util.HashSet<>();
+        for (JsonNode t : array) {
+            numeros.add(t.get("numeroTicket").asText());
+        }
+        assertThat(numeros).containsExactlyInAnyOrder("TKT-2026-1250", "TKT-2026-1251");
     }
 
     @Test
@@ -63,7 +67,7 @@ class TicketIntegrationTest extends BaseIntegrationTest {
         assertThat(t.get("quantiteCommandee").asInt()).isEqualTo(5);
         assertThat(t.get("quantiteServie").asInt()).isEqualTo(3);
         assertThat(t.get("quantiteRestante").asInt()).isEqualTo(2);
-        assertThat(t.get("engraisTypeCode").asText()).isEqualTo("UREE");
+        assertThat(t.get("engraisTypeCode").asText()).isEqualTo("IMBURA");
         assertThat(t.get("depotRetraitCode").asText()).isEqualTo("DEP-MUT");
         assertThat(t.get("agriculteurNomComplet").asText()).isEqualTo("Ndayisaba Jean");
     }
@@ -179,7 +183,7 @@ class TicketIntegrationTest extends BaseIntegrationTest {
         assertThat(code(update)).isEqualTo(200);
         JsonNode updated = node(update);
         assertThat(updated.get("quantiteCommandee").asInt()).isEqualTo(7);
-        assertThat(updated.get("engraisTypeCode").asText()).isEqualTo("NPK");
+        assertThat(updated.get("engraisTypeCode").asText()).isEqualTo("TOTAHAZA");
         assertThat(updated.get("depotRetraitCode").asText()).isEqualTo("DEP-GIT-Z");
     }
 

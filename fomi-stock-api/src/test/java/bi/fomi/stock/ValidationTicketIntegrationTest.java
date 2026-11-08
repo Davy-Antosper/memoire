@@ -75,17 +75,18 @@ class ValidationTicketIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
-    void rejeterSansMotifAccepte() throws Exception {
+    void rejeterSansMotifRefuse() throws Exception {
         String token = tokenAdmin();
         long id = creerTicket(token, "TKT-VAL-006", 3);
-        assertThat(code(apiPatch("/api/tickets/" + id + "/rejeter", token))).isEqualTo(200);
+        assertThat(code(apiPatch("/api/tickets/" + id + "/rejeter", token))).isEqualTo(400);
     }
 
     @Test
     void activerTicketRejeteRefuse() throws Exception {
         String token = tokenAdmin();
         long id = creerTicket(token, "TKT-VAL-007", 3);
-        assertThat(code(apiPatch("/api/tickets/" + id + "/rejeter", token))).isEqualTo(200);
+        assertThat(code(apiPatch("/api/tickets/" + id + "/rejeter", token,
+                Map.of("motif", "Dossier incomplet")))).isEqualTo(200);
         assertThat(code(apiPatch("/api/tickets/" + id + "/activer", token))).isEqualTo(400);
     }
 
@@ -104,7 +105,8 @@ class ValidationTicketIntegrationTest extends BaseIntegrationTest {
     void distributionTicketRejeteRefusee() throws Exception {
         String token = tokenAdmin();
         long id = creerTicket(token, "TKT-VAL-009", 2);
-        assertThat(code(apiPatch("/api/tickets/" + id + "/rejeter", token))).isEqualTo(200);
+        assertThat(code(apiPatch("/api/tickets/" + id + "/rejeter", token,
+                Map.of("motif", "Superficie non certifiée")))).isEqualTo(200);
         MvcResult result = apiPost("/api/distributions", token, Map.of(
                 "ticketId", id,
                 "depotId", 6,

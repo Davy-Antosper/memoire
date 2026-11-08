@@ -11,6 +11,7 @@ import bi.fomi.stock.model.entity.Zone;
 import bi.fomi.stock.model.enums.NiveauDepot;
 import bi.fomi.stock.repository.DepotRepository;
 import bi.fomi.stock.repository.ProvinceRepository;
+import bi.fomi.stock.repository.SeuilAlerteRepository;
 import bi.fomi.stock.repository.StockRepository;
 import bi.fomi.stock.repository.ZoneRepository;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +19,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -27,16 +30,21 @@ public class DepotService {
     private final ProvinceRepository provinceRepository;
     private final ZoneRepository zoneRepository;
     private final StockRepository stockRepository;
+    private final SeuilAlerteRepository seuilAlerteRepository;
     private final AuditLogService auditLogService;
 
     @Transactional(readOnly = true)
     public List<StockResponse> listerStock(Long depotId) {
         Depot depot = depotRepository.findById(depotId)
                 .orElseThrow(() -> new ResourceNotFoundException("Dépôt introuvable : " + depotId));
+        Map<Long, Integer> seuils = seuilAlerteRepository.findByDepotId(depotId).stream()
+                .collect(Collectors.toMap(s -> s.getEngraisType().getId(), s -> s.getSeuilMin()));
         return stockRepository.findByDepotIdOrderByEngraisTypeCode(depotId).stream()
                 .map(s -> new StockResponse(depot.getId(), depot.getCode(), depot.getNom(),
                         s.getEngraisType().getId(), s.getEngraisType().getCode(), s.getEngraisType().getNom(),
-                        s.getQuantiteDisponible(), depot.getSeuilAlerteMin(), s.getUpdatedAt()))
+                        s.getQuantiteDisponible(),
+                        seuils.getOrDefault(s.getEngraisType().getId(), depot.getSeuilAlerteMin()),
+                        s.getUpdatedAt()))
                 .toList();
     }
 

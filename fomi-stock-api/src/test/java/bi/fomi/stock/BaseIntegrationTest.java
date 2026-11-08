@@ -117,7 +117,7 @@ public abstract class BaseIntegrationTest {
                 "agriculteurId", 1,
                 "engraisTypeId", 1,
                 "quantiteCommandee", quantite,
-                "montantPaye", quantite * 25000L,
+                "montantPaye", quantite * 31000L,
                 "datePaiement", "2026-03-15",
                 "depotRetraitId", depotId,
                 "saison", "2026A"));

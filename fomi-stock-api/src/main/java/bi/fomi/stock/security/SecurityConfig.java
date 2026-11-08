@@ -58,6 +58,11 @@ public class SecurityConfig {
                         .hasAnyRole("ADMIN", "SUPERVISEUR")
                         .requestMatchers(HttpMethod.PATCH, "/api/tickets/*/rejeter")
                         .hasAnyRole("ADMIN", "SUPERVISEUR")
+                        .requestMatchers(HttpMethod.GET, "/api/reclamations/**").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/reclamations")
+                        .hasAnyRole("ADMIN", "AGENT_ZONE", "AGENT_COLLINE")
+                        .requestMatchers(HttpMethod.PATCH, "/api/reclamations/**")
+                        .hasAnyRole("ADMIN", "SUPERVISEUR")
                         .requestMatchers(HttpMethod.POST, "/api/lots/**").hasAnyRole("ADMIN", "AGENT_LOGISTIQUE")
                         .requestMatchers(HttpMethod.GET, "/api/export/**").hasAnyRole("ADMIN", "SUPERVISEUR",
                                 "AGENT_ZONE", "AGENT_LOGISTIQUE")

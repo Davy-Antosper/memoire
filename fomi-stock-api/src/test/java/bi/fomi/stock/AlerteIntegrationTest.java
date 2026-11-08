@@ -35,8 +35,8 @@ class AlerteIntegrationTest extends BaseIntegrationTest {
         JsonNode array = node(result);
         assertThat(array.size()).isEqualTo(1);
         JsonNode a = array.get(0);
-        assertThat(a.get("depotCode").asText()).isEqualTo("DEP-NGO-P");
-        assertThat(a.get("engraisTypeCode").asText()).isEqualTo("UREE");
+        assertThat(a.get("depotCode").asText()).isEqualTo("DEP-BUT-P");
+        assertThat(a.get("engraisTypeCode").asText()).isEqualTo("IMBURA");
         assertThat(a.get("type").asText()).isEqualTo("RUPTURE");
         assertThat(a.get("niveau").asText()).isEqualTo("CRITICAL");
         assertThat(a.get("traitee").asBoolean()).isFalse();
@@ -79,10 +79,10 @@ class AlerteIntegrationTest extends BaseIntegrationTest {
         String token = tokenAdmin();
         assertThat(code(apiPost("/api/mouvements/reception", token, Map.of(
                 "lotId", 1,
-                "depotDestId", 8,
+                "depotDestId", 7,
                 "quantite", 5)))).isEqualTo(200);
 
-        JsonNode alertes = node(apiGet("/api/alertes/depot/8", token));
+        JsonNode alertes = node(apiGet("/api/alertes/depot/7", token));
         boolean stockBas = false;
         for (JsonNode a : alertes) {
             if ("STOCK_BAS".equals(a.get("type").asText())) {
@@ -101,7 +101,7 @@ class AlerteIntegrationTest extends BaseIntegrationTest {
                 "agriculteurId", 1,
                 "engraisTypeId", 1,
                 "quantiteCommandee", 200,
-                "montantPaye", 200 * 25000L,
+                "montantPaye", 200 * 31000L,
                 "datePaiement", "2026-04-01",
                 "depotRetraitId", 8,
                 "saison", "2026A")))).isEqualTo(200);

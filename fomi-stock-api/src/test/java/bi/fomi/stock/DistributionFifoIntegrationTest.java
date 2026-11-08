@@ -44,8 +44,8 @@ class DistributionFifoIntegrationTest extends BaseIntegrationTest {
         JsonNode array = node(result);
         assertThat(array.size()).isEqualTo(1);
         assertThat(array.get(0).get("lotNumero").asText())
-                .as("Le lot LOT-UREE-2026-001 (reçu le premier) doit être consommé en FIFO")
-                .isEqualTo("LOT-UREE-2026-001");
+                .as("Le lot LOT-IMBURA-2026-001 (reçu le premier) doit être consommé en FIFO")
+                .isEqualTo("LOT-IMBURA-2026-001");
     }
 
     @Test
@@ -66,7 +66,7 @@ class DistributionFifoIntegrationTest extends BaseIntegrationTest {
 
         JsonNode array = node(result);
         assertThat(array.size()).isEqualTo(1);
-        assertThat(array.get(0).get("lotNumero").asText()).isEqualTo("LOT-UREE-2026-002");
+        assertThat(array.get(0).get("lotNumero").asText()).isEqualTo("LOT-IMBURA-2026-002");
     }
 
     @Test

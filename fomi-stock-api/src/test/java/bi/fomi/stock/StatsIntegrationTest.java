@@ -22,16 +22,16 @@ class StatsIntegrationTest extends BaseIntegrationTest {
         assertThat(code(result)).isEqualTo(200);
         JsonNode array = node(result);
 
-        JsonNode gitega = null;
+        JsonNode mutaho = null;
         for (JsonNode z : array) {
-            if ("Gitega Centre".equals(z.get("zoneNom").asText())) {
-                gitega = z;
+            if ("Mutaho".equals(z.get("zoneNom").asText())) {
+                mutaho = z;
             }
         }
-        assertThat(gitega).isNotNull();
-        assertThat(gitega.get("commande").asLong()).isEqualTo(10);
-        assertThat(gitega.get("servi").asLong()).isEqualTo(5);
-        assertThat(gitega.get("tauxService").asDouble()).isEqualTo(0.5);
+        assertThat(mutaho).isNotNull();
+        assertThat(mutaho.get("commande").asLong()).isEqualTo(8);
+        assertThat(mutaho.get("servi").asLong()).isEqualTo(3);
+        assertThat(mutaho.get("tauxService").asDouble()).isEqualTo(0.375);
     }
 
     @Test
@@ -41,22 +41,22 @@ class StatsIntegrationTest extends BaseIntegrationTest {
         JsonNode array = node(result);
 
         JsonNode gitega = null;
-        JsonNode ngozi = null;
+        JsonNode butanyerera = null;
         for (JsonNode p : array) {
             if ("Gitega".equals(p.get("nom").asText())) {
                 gitega = p;
             }
-            if ("Ngozi".equals(p.get("nom").asText())) {
-                ngozi = p;
+            if ("Butanyerera".equals(p.get("nom").asText())) {
+                butanyerera = p;
             }
         }
         assertThat(gitega).isNotNull();
-        assertThat(gitega.get("stock").asLong()).isEqualTo(2780);
+        assertThat(gitega.get("stock").asLong()).isEqualTo(2900);
         assertThat(gitega.get("distribue").asLong()).isEqualTo(0);
-        assertThat(gitega.get("reste").asLong()).isEqualTo(2780);
+        assertThat(gitega.get("reste").asLong()).isEqualTo(2900);
 
-        assertThat(ngozi).isNotNull();
-        assertThat(ngozi.get("stock").asLong()).isEqualTo(0);
+        assertThat(butanyerera).isNotNull();
+        assertThat(butanyerera.get("stock").asLong()).isEqualTo(0);
     }
 
     @Test
@@ -65,15 +65,15 @@ class StatsIntegrationTest extends BaseIntegrationTest {
         assertThat(code(result)).isEqualTo(200);
         JsonNode array = node(result);
 
-        JsonNode ngozi = null;
+        JsonNode butanyerera = null;
         for (JsonNode r : array) {
-            if ("DEP-NGO-P".equals(r.get("depotCode").asText())) {
-                ngozi = r;
+            if ("DEP-BUT-P".equals(r.get("depotCode").asText())) {
+                butanyerera = r;
             }
         }
-        assertThat(ngozi).isNotNull();
-        assertThat(ngozi.get("depotNom").asText()).isEqualTo("Dépôt Provincial Ngozi");
-        assertThat(ngozi.get("engraisCode").asText()).isEqualTo("UREE");
+        assertThat(butanyerera).isNotNull();
+        assertThat(butanyerera.get("depotNom").asText()).isEqualTo("Dépôt logistique provincial Butanyerera");
+        assertThat(butanyerera.get("engraisCode").asText()).isEqualTo("IMBURA");
     }
 
     @Test
@@ -90,15 +90,15 @@ class StatsIntegrationTest extends BaseIntegrationTest {
         MvcResult result = apiGet("/api/statistiques/taux-service", tokenAdmin());
         JsonNode array = node(result);
 
-        JsonNode gitega = null;
+        JsonNode mutaho = null;
         for (JsonNode z : array) {
-            if ("Gitega Centre".equals(z.get("zoneNom").asText())) {
-                gitega = z;
+            if ("Mutaho".equals(z.get("zoneNom").asText())) {
+                mutaho = z;
             }
         }
-        assertThat(gitega).isNotNull();
-        assertThat(gitega.get("commande").asLong()).isEqualTo(10);
-        assertThat(gitega.get("servi").asLong()).isEqualTo(5);
-        assertThat(gitega.get("tauxService").asDouble()).isEqualTo(0.5);
+        assertThat(mutaho).isNotNull();
+        assertThat(mutaho.get("commande").asLong()).isEqualTo(8);
+        assertThat(mutaho.get("servi").asLong()).isEqualTo(3);
+        assertThat(mutaho.get("tauxService").asDouble()).isEqualTo(0.375);
     }
 }

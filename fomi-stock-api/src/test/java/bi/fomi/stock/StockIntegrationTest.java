@@ -12,7 +12,7 @@ class StockIntegrationTest extends BaseIntegrationTest {
     void listerTousLesStocks() throws Exception {
         MvcResult result = apiGet("/api/stocks", tokenAdmin());
         assertThat(code(result)).isEqualTo(200);
-        assertThat(node(result).size()).isEqualTo(7);
+        assertThat(node(result).size()).isEqualTo(8);
     }
 
     @Test
@@ -20,7 +20,7 @@ class StockIntegrationTest extends BaseIntegrationTest {
         MvcResult result = apiGet("/api/stocks?depotId=1", tokenAdmin());
         assertThat(code(result)).isEqualTo(200);
         JsonNode array = node(result);
-        assertThat(array.size()).isEqualTo(2);
+        assertThat(array.size()).isEqualTo(3);
         for (JsonNode s : array) {
             assertThat(s.get("depotId").asLong()).isEqualTo(1);
         }
@@ -34,7 +34,7 @@ class StockIntegrationTest extends BaseIntegrationTest {
         assertThat(array.size()).isEqualTo(6);
         for (JsonNode s : array) {
             assertThat(s.get("engraisTypeId").asLong()).isEqualTo(1);
-            assertThat(s.get("engraisCode").asText()).isEqualTo("UREE");
+            assertThat(s.get("engraisCode").asText()).isEqualTo("IMBURA");
         }
     }
 
@@ -62,7 +62,9 @@ class StockIntegrationTest extends BaseIntegrationTest {
         assertThat(code(result)).isEqualTo(200);
         JsonNode s = node(result).get(0);
         assertThat(s.get("quantiteDisponible").asInt()).isEqualTo(0);
-        assertThat(s.get("seuilAlerteMin").asInt()).isEqualTo(200);
-        assertThat(s.get("depotCode").asText()).isEqualTo("DEP-NGO-P");
+        // Le seuil affiché est celui du couple dépôt + produit (seuil_alerte),
+        // et non le seuil générique du dépôt (200).
+        assertThat(s.get("seuilAlerteMin").asInt()).isEqualTo(150);
+        assertThat(s.get("depotCode").asText()).isEqualTo("DEP-BUT-P");
     }
 }

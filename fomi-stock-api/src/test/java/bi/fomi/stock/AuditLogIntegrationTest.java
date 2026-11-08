@@ -74,7 +74,7 @@ class AuditLogIntegrationTest extends BaseIntegrationTest {
                 .filter(l -> "MOUVEMENT_RECEPTION".equals(l.getAction()))
                 .toList();
         assertThat(logs).isNotEmpty();
-        assertThat(logs.get(0).getDetailsJson()).contains("\"depot\":\"DEP-BUB-P\"");
+        assertThat(logs.get(0).getDetailsJson()).contains("\"depot\":\"DEP-BUJ-P\"");
     }
 
     @Test

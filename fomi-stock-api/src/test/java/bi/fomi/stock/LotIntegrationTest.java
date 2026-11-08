@@ -34,30 +34,30 @@ class LotIntegrationTest extends BaseIntegrationTest {
 
     @Test
     void rechercheParNumero() throws Exception {
-        mvc.perform(get("/api/lots/recherche").param("numero", "LOT-UREE")
+        mvc.perform(get("/api/lots/recherche").param("numero", "LOT-IMBURA")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenAdmin()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].numeroLot").value("LOT-UREE-2026-001"));
+                .andExpect(jsonPath("$[0].numeroLot").value("LOT-IMBURA-2026-001"));
     }
 
     @Test
     void adminCreeUnLot() throws Exception {
         MvcResult result = apiPost("/api/lots", tokenAdmin(), Map.of(
-                "numeroLot", "LOT-NPK-2026-002",
+                "numeroLot", "LOT-TOTAHAZA-2026-002",
                 "engraisTypeId", 2,
                 "quantiteInitiale", 1000,
                 "dateFabrication", "2026-07-01",
                 "datePeremption", "2027-07-01"));
         assertThat(code(result)).isEqualTo(200);
         JsonNode lot = node(result);
-        assertThat(lot.get("numeroLot").asText()).isEqualTo("LOT-NPK-2026-002");
-        assertThat(lot.get("engraisTypeCode").asText()).isEqualTo("NPK");
+        assertThat(lot.get("numeroLot").asText()).isEqualTo("LOT-TOTAHAZA-2026-002");
+        assertThat(lot.get("engraisTypeCode").asText()).isEqualTo("TOTAHAZA");
     }
 
     @Test
     void numeroLotDupliqueRefuse() throws Exception {
         MvcResult result = apiPost("/api/lots", tokenAdmin(), Map.of(
-                "numeroLot", "LOT-UREE-2026-001",
+                "numeroLot", "LOT-IMBURA-2026-001",
                 "engraisTypeId", 1,
                 "quantiteInitiale", 100));
         assertThat(code(result)).isEqualTo(400);

@@ -48,8 +48,8 @@ public class TicketController {
     }
 
     @PatchMapping("/{id}/rejeter")
-    public TicketResponse rejeter(@PathVariable Long id, @RequestBody(required = false) RejetTicketRequest request) {
-        return ticketService.rejeter(id, request != null ? request.motif() : null);
+    public TicketResponse rejeter(@PathVariable Long id, @Valid @RequestBody RejetTicketRequest request) {
+        return ticketService.rejeter(id, request.motif());
     }
 
     /**

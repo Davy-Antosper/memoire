@@ -105,7 +105,7 @@ class StockConcurrenceIntegrationTest {
         JsonNode stocks = om(apiGet("/api/depots/1/stock", token));
         long uree = -1;
         for (JsonNode s : stocks) {
-            if ("UREE".equals(s.get("engraisCode").asText())) {
+            if ("IMBURA".equals(s.get("engraisCode").asText())) {
                 uree = s.get("quantiteDisponible").asLong();
             }
         }

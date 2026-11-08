@@ -43,7 +43,7 @@ class AlerteDelaiIntegrationTest extends BaseIntegrationTest {
         List<Alerte> musigati = alerteRepository.findByDepotIdOrderByCreatedAtDesc(8L);
         boolean delaiTrouve = musigati.stream()
                 .anyMatch(a -> a.getType() == TypeAlerte.DELAI_DEPASSE);
-        assertThat(delaiTrouve).as("Ticket 1250 (RECLAMATION, 2025-11-01) doit déclencher DELAI_DEPASSE à DEP-MUS")
+        assertThat(delaiTrouve).as("Ticket 1250 (PAYE, 2025-11-01) doit déclencher DELAI_DEPASSE à DEP-MUS")
                 .isTrue();
     }
 

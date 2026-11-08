@@ -44,6 +44,7 @@ public class EngraisTypeController {
                 .nom(req.nom())
                 .poidsSacKg(req.poidsSacKg())
                 .prixSubventionne(req.prixSubventionne())
+                .prixAConfirmer(req.prixAConfirmer() != null ? req.prixAConfirmer() : false)
                 .actif(req.actif() != null ? req.actif() : true)
                 .build();
         EngraisType saved = engraisTypeRepository.save(e);
@@ -65,6 +66,7 @@ public class EngraisTypeController {
         e.setNom(req.nom());
         e.setPoidsSacKg(req.poidsSacKg());
         e.setPrixSubventionne(req.prixSubventionne());
+        if (req.prixAConfirmer() != null) e.setPrixAConfirmer(req.prixAConfirmer());
         if (req.actif() != null) e.setActif(req.actif());
         EngraisType saved = engraisTypeRepository.save(e);
         auditLogService.log("ENGRAIS_TYPE_UPDATE", "EngraisType", saved.getId(),
@@ -85,6 +87,6 @@ public class EngraisTypeController {
 
     private EngraisTypeResponse toResponse(EngraisType e) {
         return new EngraisTypeResponse(e.getId(), e.getCode(), e.getNom(),
-                e.getPoidsSacKg(), e.getPrixSubventionne(), e.getActif());
+                e.getPoidsSacKg(), e.getPrixSubventionne(), e.getPrixAConfirmer(), e.getActif());
     }
 }

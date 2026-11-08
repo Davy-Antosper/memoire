@@ -31,6 +31,11 @@ public class EngraisType {
     @Column(name = "prix_subventionne", nullable = false)
     private BigDecimal prixSubventionne;
 
+    /** Prix non encore publié par la FOMI : l'interface doit l'indiquer clairement. */
+    @Column(name = "prix_a_confirmer", nullable = false)
+    @Builder.Default
+    private Boolean prixAConfirmer = false;
+
     @Column(nullable = false)
     @Builder.Default
     private Boolean actif = true;

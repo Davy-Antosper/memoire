@@ -23,7 +23,7 @@ class DepotIntegrationTest extends BaseIntegrationTest {
         assertThat(code(result)).isEqualTo(200);
         JsonNode d = node(result);
         assertThat(d.get("code").asText()).isEqualTo("DEP-GIT-P");
-        assertThat(d.get("nom").asText()).isEqualTo("Dépôt Provincial Gitega");
+        assertThat(d.get("nom").asText()).isEqualTo("Dépôt logistique provincial Gitega");
         assertThat(d.get("niveau").asText()).isEqualTo("PROVINCE");
         assertThat(d.get("provinceNom").asText()).isEqualTo("Gitega");
         assertThat(d.get("seuilAlerteMin").asInt()).isEqualTo(500);
@@ -41,13 +41,16 @@ class DepotIntegrationTest extends BaseIntegrationTest {
         MvcResult result = apiGet("/api/depots/1/stock", tokenAdmin());
         assertThat(code(result)).isEqualTo(200);
         JsonNode array = node(result);
-        assertThat(array.size()).isEqualTo(2);
+        assertThat(array.size()).isEqualTo(3);
         for (JsonNode s : array) {
-            if ("UREE".equals(s.get("engraisCode").asText())) {
+            if ("IMBURA".equals(s.get("engraisCode").asText())) {
                 assertThat(s.get("quantiteDisponible").asInt()).isEqualTo(1500);
             }
-            if ("NPK".equals(s.get("engraisCode").asText())) {
+            if ("TOTAHAZA".equals(s.get("engraisCode").asText())) {
                 assertThat(s.get("quantiteDisponible").asInt()).isEqualTo(800);
+            }
+            if ("DOLOMIE".equals(s.get("engraisCode").asText())) {
+                assertThat(s.get("quantiteDisponible").asInt()).isEqualTo(120);
             }
         }
     }
@@ -70,7 +73,7 @@ class DepotIntegrationTest extends BaseIntegrationTest {
         JsonNode d = node(result);
         assertThat(d.get("code").asText()).isEqualTo("DEP-NEW-P");
         assertThat(d.get("niveau").asText()).isEqualTo("PROVINCE");
-        assertThat(d.get("provinceNom").asText()).isEqualTo("Bubanza");
+        assertThat(d.get("provinceNom").asText()).isEqualTo("Bujumbura");
         assertThat(d.get("seuilAlerteMin").asInt()).isEqualTo(250);
     }
 
@@ -84,7 +87,7 @@ class DepotIntegrationTest extends BaseIntegrationTest {
         assertThat(code(result)).isEqualTo(200);
         JsonNode d = node(result);
         assertThat(d.get("niveau").asText()).isEqualTo("ZONE");
-        assertThat(d.get("zoneNom").asText()).isEqualTo("Gitega Centre");
+        assertThat(d.get("zoneNom").asText()).isEqualTo("Buhevyi");
         assertThat(d.get("communeNom").asText()).isEqualTo("Gitega");
         assertThat(d.get("provinceNom").asText()).isEqualTo("Gitega");
     }
@@ -131,16 +134,16 @@ class DepotIntegrationTest extends BaseIntegrationTest {
     void modifierDepot() throws Exception {
         String token = tokenAdmin();
         MvcResult result = apiPut("/api/depots/9", token, Map.of(
-                "code", "DEP-MWE",
-                "nom", "Dépôt Zone Mwendo (modifié)",
+                "code", "DEP-MIV",
+                "nom", "Dépôt de distribution Mivo (modifié)",
                 "niveau", "ZONE",
                 "zoneId", 4,
                 "seuilAlerteMin", 75));
         assertThat(code(result)).isEqualTo(200);
         JsonNode d = node(result);
-        assertThat(d.get("nom").asText()).isEqualTo("Dépôt Zone Mwendo (modifié)");
+        assertThat(d.get("nom").asText()).isEqualTo("Dépôt de distribution Mivo (modifié)");
         assertThat(d.get("seuilAlerteMin").asInt()).isEqualTo(75);
-        assertThat(d.get("zoneNom").asText()).isEqualTo("Ngozi Centre");
+        assertThat(d.get("zoneNom").asText()).isEqualTo("Mivo");
         assertThat(d.get("communeNom").asText()).isEqualTo("Ngozi");
     }
 

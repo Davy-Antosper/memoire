@@ -14,7 +14,7 @@ class GeoIntegrationTest extends BaseIntegrationTest {
         MvcResult result = apiGet("/api/provinces", token);
         assertThat(code(result)).isEqualTo(200);
         JsonNode array = node(result);
-        assertThat(array.size()).isEqualTo(3);
+        assertThat(array.size()).isEqualTo(5);
         JsonNode gitega = null;
         for (JsonNode p : array) {
             if ("GIT".equals(p.get("code").asText())) {
@@ -27,10 +27,10 @@ class GeoIntegrationTest extends BaseIntegrationTest {
         MvcResult communes = apiGet("/api/communes", token);
         assertThat(code(communes)).isEqualTo(200);
         JsonNode communesArray = node(communes);
-        assertThat(communesArray.size()).isEqualTo(5);
+        assertThat(communesArray.size()).isEqualTo(42);
         boolean gitegaCommune = false;
         for (JsonNode c : communesArray) {
-            if ("GIT-CO-GIT".equals(c.get("code").asText())) {
+            if ("GIT-CO-GITEGA".equals(c.get("code").asText())) {
                 gitegaCommune = true;
                 assertThat(c.get("provinceNom").asText()).isEqualTo("Gitega");
             }
@@ -43,7 +43,7 @@ class GeoIntegrationTest extends BaseIntegrationTest {
         MvcResult result = apiGet("/api/zones", tokenAdmin());
         assertThat(code(result)).isEqualTo(200);
         JsonNode array = node(result);
-        assertThat(array.size()).isEqualTo(4);
+        assertThat(array.size()).isEqualTo(39);
         assertThat(array.get(0).get("communeNom").asText()).isNotBlank();
         assertThat(array.get(0).get("provinceNom").asText()).isNotBlank();
     }
@@ -53,14 +53,22 @@ class GeoIntegrationTest extends BaseIntegrationTest {
         MvcResult result = apiGet("/api/provinces/1/zones", tokenAdmin());
         assertThat(code(result)).isEqualTo(200);
         JsonNode array = node(result);
-        assertThat(array.size()).isEqualTo(2);
+        assertThat(array.size()).isEqualTo(19);
         assertThat(array.get(0).get("provinceNom").asText()).isEqualTo("Gitega");
 
         MvcResult communes = apiGet("/api/provinces/1/communes", tokenAdmin());
         assertThat(code(communes)).isEqualTo(200);
         JsonNode communesArray = node(communes);
-        assertThat(communesArray.size()).isEqualTo(2);
-        long communeId = communesArray.get(0).get("id").asLong();
+        assertThat(communesArray.size()).isEqualTo(9);
+        // Toutes les communes ne disposent pas encore de zones saisies :
+        // on cible la commune de Gitega, qui en compte 12 dans le référentiel.
+        long communeId = -1;
+        for (JsonNode c : communesArray) {
+            if ("Gitega".equals(c.get("nom").asText())) {
+                communeId = c.get("id").asLong();
+            }
+        }
+        assertThat(communeId).isPositive();
 
         MvcResult zonesOfCommune = apiGet("/api/communes/" + communeId + "/zones", tokenAdmin());
         assertThat(code(zonesOfCommune)).isEqualTo(200);
@@ -71,7 +79,7 @@ class GeoIntegrationTest extends BaseIntegrationTest {
     void listerCollines() throws Exception {
         MvcResult result = apiGet("/api/collines", tokenAdmin());
         assertThat(code(result)).isEqualTo(200);
-        assertThat(node(result).size()).isEqualTo(6);
+        assertThat(node(result).size()).isEqualTo(73);
     }
 
     @Test
@@ -79,8 +87,8 @@ class GeoIntegrationTest extends BaseIntegrationTest {
         MvcResult result = apiGet("/api/zones/1/collines", tokenAdmin());
         assertThat(code(result)).isEqualTo(200);
         JsonNode array = node(result);
-        assertThat(array.size()).isEqualTo(2);
-        assertThat(array.get(0).get("zoneNom").asText()).isEqualTo("Gitega Centre");
+        assertThat(array.size()).isEqualTo(5);
+        assertThat(array.get(0).get("zoneNom").asText()).isEqualTo("Buhevyi");
     }
 
     @Test
@@ -88,19 +96,20 @@ class GeoIntegrationTest extends BaseIntegrationTest {
         MvcResult result = apiGet("/api/engrais-types", tokenAdmin());
         assertThat(code(result)).isEqualTo(200);
         JsonNode array = node(result);
-        assertThat(array.size()).isEqualTo(3);
+        assertThat(array.size()).isEqualTo(4);
         for (JsonNode e : array) {
             assertThat(e.get("actif").asBoolean()).isTrue();
         }
-        JsonNode uree = null;
+        JsonNode imbura = null;
         for (JsonNode e : array) {
-            if ("UREE".equals(e.get("code").asText())) {
-                uree = e;
+            if ("IMBURA".equals(e.get("code").asText())) {
+                imbura = e;
             }
         }
-        assertThat(uree).isNotNull();
-        assertThat(uree.get("prixSubventionne").asDouble()).isEqualTo(25000.0);
-        assertThat(uree.get("poidsSacKg").asDouble()).isEqualTo(50.0);
+        assertThat(imbura).isNotNull();
+        assertThat(imbura.get("prixSubventionne").asDouble()).isEqualTo(31000.0);
+        assertThat(imbura.get("poidsSacKg").asDouble()).isEqualTo(25.0);
+        assertThat(imbura.get("prixAConfirmer").asBoolean()).isFalse();
     }
 
     @Test

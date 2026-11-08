@@ -94,9 +94,9 @@ public class EmailNotificationService {
                 .append(" pour l'engrais ").append(nomEngrais)
                 .append(" est maintenant : ").append(statut).append(".\n\n");
         contenu.append("Détails du ticket\n");
-        contenu.append("- Quantité commandée : ").append(ticket.getQuantiteCommandee()).append(" kg\n");
-        contenu.append("- Quantité servie    : ").append(ticket.getQuantiteServie()).append(" kg\n");
-        contenu.append("- Quantité restante  : ").append(ticket.getQuantiteRestante()).append(" kg\n");
+        contenu.append("- Quantité commandée : ").append(ticket.getQuantiteCommandee()).append(" sacs de 25 kg\n");
+        contenu.append("- Quantité servie    : ").append(ticket.getQuantiteServie()).append(" sacs de 25 kg\n");
+        contenu.append("- Quantité restante  : ").append(ticket.getQuantiteRestante()).append(" sacs de 25 kg\n");
         if (ticket.getDepotRetrait() != null) {
             contenu.append("- Dépôt de retrait   : ").append(ticket.getDepotRetrait().getNom())
                     .append(" (").append(ticket.getDepotRetrait().getCode()).append(")\n");

@@ -97,11 +97,11 @@ public class DistributionService {
         auditLogService.log("DISTRIBUTION_CREATE", "Ticket", ticket.getId(),
                 "{\"depot\":\"" + depot.getCode() + "\",\"quantite\":" + req.quantite() + ",\"reste\":"
                         + ticket.getQuantiteRestante() + "}");
-        String precision = "Distribution de " + req.quantite() + " kg effectuée au dépôt "
+        String precision = "Distribution de " + req.quantite() + " sacs de 25 kg effectuée au dépôt "
                 + depot.getCode() + ". "
                 + (ticket.getStatut() == StatutTicket.SERVI
                         ? "Votre ticket est entièrement servi."
-                        : "Il vous reste " + ticket.getQuantiteRestante() + " kg à retirer.");
+                        : "Il vous reste " + ticket.getQuantiteRestante() + " sacs de 25 kg à retirer.");
         emailNotificationService.notifierTicket(ticket, "DISTRIBUTION", precision);
         return reponses;
     }

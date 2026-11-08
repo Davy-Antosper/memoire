@@ -31,6 +31,8 @@ import java.util.List;
 public class TicketService {
 
     private static final BigDecimal KG_PAR_HECTARE = new BigDecimal("150");
+    private static final BigDecimal KG_PAR_SAC = new BigDecimal("25");
+    private static final BigDecimal SAC_PAR_HECTARE = KG_PAR_HECTARE.divide(KG_PAR_SAC);
 
     private final TicketRepository ticketRepository;
     private final AgriculteurRepository agriculteurRepository;
@@ -51,15 +53,16 @@ public class TicketService {
         Depot depot = depotRepository.findById(req.depotRetraitId())
                 .orElseThrow(() -> new ResourceNotFoundException("Dépôt de retrait introuvable"));
 
-        // R22 : vérification des quotas par superficie (superficie × 150 kg/ha)
+        // R22 : vérification des quotas par superficie.
+        // 150 kg/ha, soit 6 sacs de 25 kg par hectare.
         BigDecimal superficie = req.superficieHa() != null ? req.superficieHa()
                 : (agriculteur.getSuperficieHa() != null ? agriculteur.getSuperficieHa() : null);
         if (superficie != null && superficie.compareTo(BigDecimal.ZERO) > 0) {
-            BigDecimal plafond = superficie.multiply(KG_PAR_HECTARE).setScale(0, RoundingMode.DOWN);
+            BigDecimal plafond = superficie.multiply(SAC_PAR_HECTARE).setScale(0, RoundingMode.DOWN);
             if (req.quantiteCommandee().compareTo(plafond.intValue()) > 0) {
                 throw new BusinessException("La quantité commandée (" + req.quantiteCommandee()
-                        + " kg) dépasse le plafond autorisé pour cet agriculteur (" + plafond + " kg). "
-                        + "Plafond calculé : superficie × 150 kg/ha");
+                        + " sacs de 25 kg) dépasse le plafond autorisé pour cet agriculteur (" + plafond
+                        + " sacs). Plafond calculé : superficie × 150 kg/ha ÷ 25 kg");
             }
             // Vérifier le cumul des tickets actifs pour la même saison
             List<Ticket> existants = ticketRepository.findByAgriculteurId(req.agriculteurId()).stream()
@@ -71,8 +74,8 @@ public class TicketService {
             int cumul = existants.stream().mapToInt(Ticket::getQuantiteCommandee).sum();
             if (cumul + req.quantiteCommandee() > plafond.intValue()) {
                 throw new BusinessException("Le cumul des tickets pour la saison " + req.saison()
-                        + " (" + (cumul + req.quantiteCommandee()) + " kg) dépasse le plafond autorisé ("
-                        + plafond + " kg). Déjà commandé : " + cumul + " kg");
+                        + " (" + (cumul + req.quantiteCommandee()) + " sacs de 25 kg) dépasse le plafond autorisé ("
+                        + plafond + " sacs). Déjà commandé : " + cumul + " sacs");
             }
             // R6 : vérifier qu'il n'y a pas déjà un ticket pour même saison + même type engrais
             boolean doublon = existants.stream().anyMatch(t ->
@@ -158,6 +161,10 @@ public class TicketService {
 
     @Transactional
     public TicketResponse rejeter(Long id, String motif) {
+        if (motif == null || motif.isBlank()) {
+            throw new BusinessException("Le motif de rejet est obligatoire : l'agriculteur doit connaître la raison du refus.");
+        }
+        String motifPropre = motif.trim();
         Ticket ticket = ticketRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Ticket introuvable : " + id));
         if (ticket.getStatut() != StatutTicket.EN_ATTENTE_DE_VALIDATION) {
@@ -165,12 +172,13 @@ public class TicketService {
                     + ticket.getStatut() + ")");
         }
         ticket.setStatut(StatutTicket.REJETE);
+        ticket.setMotifRejet(motifPropre);
         String details = "{\"numero\":\"" + ticket.getNumeroTicket() + "\",\"statut\":\"" + StatutTicket.REJETE + "\""
-                + (motif != null && !motif.isBlank() ? ",\"motif\":\"" + motif.replace("\"", "'") + "\"" : "") + "}";
+                + ",\"motif\":\"" + motifPropre.replace("\"", "'") + "\"}";
         auditLogService.log("TICKET_REJECT", "Ticket", ticket.getId(), details);
         ticket = ticketRepository.save(ticket);
         emailNotificationService.notifierTicket(ticket, "TICKET_REJETE",
-                (motif != null && !motif.isBlank() ? "Motif du rejet : " + motif : null));
+                "Motif du rejet : " + motifPropre);
         return toResponse(ticket);
     }
 
@@ -248,6 +256,6 @@ public class TicketService {
                 t.getEngraisType().getCode(), t.getQuantiteCommandee(), t.getQuantiteServie(),
                 t.getQuantiteRestante(), t.getMontantPaye(), t.getDatePaiement(),
                 t.getDepotRetrait().getCode(), t.getStatut(), t.getSaison(),
-                t.getSuperficieHa(), t.getDateCreation());
+                t.getSuperficieHa(), t.getMotifRejet(), t.getEstDemo(), t.getDateCreation());
     }
 }
