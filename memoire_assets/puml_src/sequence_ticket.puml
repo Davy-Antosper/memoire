@@ -1,0 +1,52 @@
+@startuml
+title Création et validation d'un ticket d'engrais
+skinparam shadowing true
+skinparam roundCorner 12
+skinparam DefaultFontName "Segoe UI"
+skinparam sequenceMessageAlign center
+skinparam ArrowColor #546E7A
+
+actor "Agent colline" as A1
+actor "Agent zone" as A2
+participant "Ticket\nController" as CTRL
+participant "Ticket\nService" as SVC
+database "Base de données" as DB
+participant "Notification\nService" as MAIL
+
+== Création ==
+A1 -> CTRL : Créer un ticket
+CTRL -> SVC : creer(...)
+activate SVC
+
+SVC -> SVC : Vérifier les règles métier
+note right of SVC
+  R22 : quantité <= superficie x 150 kg/ha
+  R22 : cumul de la saison respecté
+  R6  : un seul ticket par saison et engrais
+  Numéro de ticket unique
+end note
+
+SVC -> DB : Enregistrer le ticket
+note right of DB : statut =\nEN_ATTENTE_DE_VALIDATION
+SVC -> MAIL : Notifier l'agriculteur
+SVC --> CTRL : Ticket créé
+deactivate SVC
+CTRL --> A1 : 201 Created
+
+== Validation ==
+A2 -> CTRL : Valider le ticket
+CTRL -> SVC : activer(id)
+activate SVC
+SVC -> SVC : Vérifier le statut\n(doit être EN_ATTENTE_DE_VALIDATION)
+SVC -> DB : Mettre le statut à ACTIF
+SVC -> MAIL : Notifier l'agriculteur
+SVC --> CTRL : Ticket validé
+deactivate SVC
+CTRL --> A2 : 200 OK
+
+note over A2, MAIL
+  Alternative : REJET
+  PATCH /api/tickets/{id}/rejeter
+  -> statut = REJETE (même contrôle de statut)
+end note
+@enduml

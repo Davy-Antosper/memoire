@@ -1,0 +1,43 @@
+@startuml
+left to right direction
+title Architecture du systeme FOMI-Stock
+skinparam shadowing false
+skinparam roundCorner 14
+skinparam DefaultFontName "Segoe UI"
+skinparam ArrowColor #546E7A
+skinparam nodesep 28
+skinparam ranksep 55
+skinparam packageBorderColor #90A4AE
+skinparam packageBackgroundColor #FAFAFA
+skinparam rectangleBorderColor #90A4AE
+skinparam rectangleBackgroundColor #FFFFFF
+
+package "Clients" {
+  rectangle "Application web\nReact + Vite" as WEB #E3F2FD
+  rectangle "Application mobile\nExpo / React Native" as MOB #E8F5E9
+}
+
+package "API REST — Spring Boot 3.3.5 / Java 21" {
+  rectangle "Referentiels\ngeographie, depots,\nengrais, agriculteurs" as M1 #FFFFFF
+  rectangle "Stocks et lots\nreceptions, transferts,\nFIFO, ajustements" as M2 #FFFFFF
+  rectangle "Tickets et\ndistribution\nworkflow de validation" as M3 #FFFFFF
+  rectangle "Alertes, statistiques\net piste d'audit" as M4 #FFFFFF
+}
+
+package "Donnees" {
+  database "PostgreSQL 16\n16 tables" as DB #F3E5F5
+}
+
+rectangle "Service de\nnotification email" as MAIL #ECEFF1
+
+WEB --> M1
+WEB --> M2
+MOB --> M3
+MOB --> M4
+M1 --> DB
+M2 --> DB
+M3 --> DB
+M4 --> DB
+M2 ..> MAIL : alertes
+
+@enduml

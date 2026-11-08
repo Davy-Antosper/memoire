@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
-"""Construit le rapport de stage FOMI au format du canevas du professeur.
+"""Met à jour le rapport de stage FOMI (canevas du professeur).
 
-Etapes :
-    1. canevas_restructure.py : restructuration du mémoire selon le canevas ;
-    2. canevas_fixfacts.py    : mise à jour des faits techniques (API réelle) ;
-    3. canevas_finalize.py    : numérotation, renvois internes, annexes de code.
+Le rapport de référence est `Rapport_stage_FOMI_canevas.docx`, restructuré
+selon le canevas du promoteur (voir l'historique dans `tools/rapport/`).
+
+Cette commande applique uniquement la passe de cohérence métier
+`update_docx_model.py` : modèle Province -> Commune -> Zone -> Colline,
+dépôts limités à PROVINCE et ZONE, et compteurs à jour (17 tables,
+13 migrations, 65 endpoints). La passe est idempotente.
 
 Usage :
     python build_rapport.py
@@ -14,12 +17,7 @@ import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-STEPS = [
-    "canevas_restructure.py",
-    "canevas_fixfacts.py",
-    "canevas_finalize.py",
-    "update_docx_model.py",
-]
+STEPS = ["update_docx_model.py"]
 
 env = dict(os.environ)
 env.setdefault("PYTHONIOENCODING", "utf-8")
@@ -33,4 +31,4 @@ for step in STEPS:
         sys.exit(result.returncode)
 
 print("\n=== TERMINE ===")
-print("Rapport généré :", os.path.join(HERE, "Rapport_stage_FOMI_canevas.docx"))
+print("Rapport mis à jour :", os.path.join(HERE, "Rapport_stage_FOMI_canevas.docx"))

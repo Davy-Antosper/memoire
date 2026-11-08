@@ -1,5 +1,6 @@
-fomi.txt 
-*.log
-__pycache__/
+﻿__pycache__/
 *.pyc
-
+~$*.docx
+_backup/
+fomi.txt
+*.log
