@@ -11,7 +11,6 @@ public record DepotRequest(
         @NotNull NiveauDepot niveau,
         Long provinceId,
         Long zoneId,
-        Long collineId,
         @PositiveOrZero Integer seuilAlerteMin,
         @PositiveOrZero Integer capaciteMax) {
 }

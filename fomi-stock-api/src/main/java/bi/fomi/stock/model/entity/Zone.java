@@ -27,8 +27,8 @@ public class Zone {
     private String nom;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "province_id", nullable = false)
-    private Province province;
+    @JoinColumn(name = "commune_id", nullable = false)
+    private Commune commune;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;

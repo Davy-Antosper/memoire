@@ -17,6 +17,9 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: fomi-stock-web
     steps:
       - name: Vérifier le dépôt
         uses: actions/checkout@v5
@@ -26,6 +29,7 @@ jobs:
         with:
           node-version: 20
           cache: npm
+          cache-dependency-path: fomi-stock-web/package-lock.json
 
       - name: Installer les dépendances
         run: npm ci
@@ -36,7 +40,7 @@ jobs:
       - name: Publier l'artefact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: fomi-stock-web/dist
 
   deploy:
     needs: build

@@ -33,8 +33,15 @@ export default function Utilisateurs() {
 
   function startCreate() {
     setEditing(null)
+    setError('')
+    setMsg('')
     reset()
     setShowForm(true)
+  }
+
+  function closeForm() {
+    setShowForm(false)
+    setEditing(null)
   }
 
   function startEdit(u) {
@@ -75,15 +82,18 @@ export default function Utilisateurs() {
     }
   }
 
-  if (error) return <ErrorBox message={error} />
-  if (!list) return <Loading />
+  if (!list) return error ? <ErrorBox message={error} /> : <Loading />
 
   return (
     <>
       <SuccessBox message={msg} />
-      <div className="row">
-        <h1 style={{ margin: 0 }}>Utilisateurs</h1>
-        <button className="btn" onClick={startCreate}>
+      <ErrorBox message={error} />
+      <div className="row page-actions">
+        <div>
+          <h2 className="section-title">Utilisateurs</h2>
+          <p className="section-sub">Comptes, rôles et affectations aux dépôts.</p>
+        </div>
+        <button className="btn" onClick={() => (showForm ? closeForm() : startCreate())}>
           {showForm ? 'Annuler' : 'Nouvel utilisateur'}
         </button>
       </div>
@@ -122,6 +132,7 @@ export default function Utilisateurs() {
             )}
           </div>
           <button className="btn">{editing ? 'Enregistrer' : 'Créer'}</button>
+          <button type="button" className="btn outline" onClick={closeForm}>Annuler</button>
         </form>
       )}
 

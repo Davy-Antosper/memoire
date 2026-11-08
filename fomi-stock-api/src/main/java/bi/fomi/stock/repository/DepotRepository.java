@@ -15,6 +15,4 @@ public interface DepotRepository extends JpaRepository<Depot, Long> {
     List<Depot> findByProvinceId(Long provinceId);
 
     List<Depot> findByZoneId(Long zoneId);
-
-    List<Depot> findByCollineId(Long collineId);
 }

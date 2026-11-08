@@ -22,11 +22,20 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
 
     Page<Ticket> findByStatut(StatutTicket statut, Pageable pageable);
 
+    Page<Ticket> findBySaison(String saison, Pageable pageable);
+
+    Page<Ticket> findByStatutAndSaison(StatutTicket statut, String saison, Pageable pageable);
+
     List<Ticket> findByAgriculteurId(Long agriculteurId);
 
     Page<Ticket> findByDepotRetraitId(Long depotId, Pageable pageable);
 
     Page<Ticket> findByDepotRetraitIdAndStatut(Long depotId, StatutTicket statut, Pageable pageable);
+
+    Page<Ticket> findByDepotRetraitIdAndSaison(Long depotId, String saison, Pageable pageable);
+
+    Page<Ticket> findByDepotRetraitIdAndStatutAndSaison(Long depotId, StatutTicket statut, String saison,
+                                                         Pageable pageable);
 
     @Query("""
             SELECT t FROM Ticket t

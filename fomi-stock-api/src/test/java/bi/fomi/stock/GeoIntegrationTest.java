@@ -23,6 +23,19 @@ class GeoIntegrationTest extends BaseIntegrationTest {
         }
         assertThat(gitega).isNotNull();
         assertThat(gitega.get("nom").asText()).isEqualTo("Gitega");
+
+        MvcResult communes = apiGet("/api/communes", token);
+        assertThat(code(communes)).isEqualTo(200);
+        JsonNode communesArray = node(communes);
+        assertThat(communesArray.size()).isEqualTo(5);
+        boolean gitegaCommune = false;
+        for (JsonNode c : communesArray) {
+            if ("GIT-CO-GIT".equals(c.get("code").asText())) {
+                gitegaCommune = true;
+                assertThat(c.get("provinceNom").asText()).isEqualTo("Gitega");
+            }
+        }
+        assertThat(gitegaCommune).isTrue();
     }
 
     @Test
@@ -31,6 +44,8 @@ class GeoIntegrationTest extends BaseIntegrationTest {
         assertThat(code(result)).isEqualTo(200);
         JsonNode array = node(result);
         assertThat(array.size()).isEqualTo(4);
+        assertThat(array.get(0).get("communeNom").asText()).isNotBlank();
+        assertThat(array.get(0).get("provinceNom").asText()).isNotBlank();
     }
 
     @Test
@@ -40,6 +55,16 @@ class GeoIntegrationTest extends BaseIntegrationTest {
         JsonNode array = node(result);
         assertThat(array.size()).isEqualTo(2);
         assertThat(array.get(0).get("provinceNom").asText()).isEqualTo("Gitega");
+
+        MvcResult communes = apiGet("/api/provinces/1/communes", tokenAdmin());
+        assertThat(code(communes)).isEqualTo(200);
+        JsonNode communesArray = node(communes);
+        assertThat(communesArray.size()).isEqualTo(2);
+        long communeId = communesArray.get(0).get("id").asLong();
+
+        MvcResult zonesOfCommune = apiGet("/api/communes/" + communeId + "/zones", tokenAdmin());
+        assertThat(code(zonesOfCommune)).isEqualTo(200);
+        assertThat(node(zonesOfCommune).size()).isGreaterThanOrEqualTo(1);
     }
 
     @Test

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
 import { api } from '../api/client'
 
 const AuthContext = createContext(null)
@@ -11,6 +11,14 @@ export function AuthProvider({ children }) {
       return null
     }
   })
+
+  // Une réponse 401 (token expiré/révoqué) doit aussi vider l'état React,
+  // sinon l'utilisateur reste visuellement connecté malgré la perte du token.
+  useEffect(() => {
+    const onUnauthorized = () => setUser(null)
+    window.addEventListener('fomi:unauthorized', onUnauthorized)
+    return () => window.removeEventListener('fomi:unauthorized', onUnauthorized)
+  }, [])
 
   async function login(username, password) {
     const { data } = await api.post('/api/auth/login', { username, password })

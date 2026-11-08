@@ -21,6 +21,8 @@ export default function Agriculteurs() {
     prenom: '',
     telephone: '',
     email: '',
+    provinceId: null,
+    zoneId: null,
     collineId: null,
     estCooperative: false
   })
@@ -32,6 +34,7 @@ export default function Agriculteurs() {
 
   useEffect(() => {
     setData(null)
+    setError('')
     api.get('/api/agriculteurs', { params: { page, size: 50 } })
       .then((r) => setData(r.data))
       .catch((e) => setError(errorMessage(e)))
@@ -40,6 +43,7 @@ export default function Agriculteurs() {
   function search() {
     if (!telephone.trim()) return
     setData(null)
+    setError('')
     api.get('/api/agriculteurs/recherche', { params: { telephone: telephone.trim() } })
       .then((r) => setData({ content: r.data, totalElements: r.data.length, totalPages: 1, number: 0 }))
       .catch((e) => setError(errorMessage(e)))
@@ -47,7 +51,14 @@ export default function Agriculteurs() {
 
   function resetList() {
     setTelephone('')
+    setError('')
     setPage(0)
+    // Si la page courante est déjà 0, le useEffect [page] ne se déclenche pas :
+    // on recharge donc explicitement la liste complète.
+    setData(null)
+    api.get('/api/agriculteurs', { params: { page: 0, size: 50 } })
+      .then((r) => setData(r.data))
+      .catch((e) => setError(errorMessage(e)))
   }
 
   function onProvince(id) {
@@ -79,6 +90,7 @@ export default function Agriculteurs() {
   async function create(e) {
     e.preventDefault()
     setMsg('')
+    setError('')
     try {
       const payload = {
         numeroIdentite: form.numeroIdentite,
@@ -93,22 +105,30 @@ export default function Agriculteurs() {
       setMsg(`${created.numeroIdentite} — ${created.nom} ${created.prenom} créé`)
       setShowCreate(false)
       reset()
+      setTelephone('')
       setPage(0)
+      // Rafraîchit immédiatement la liste, même si la page courante était déjà 0.
+      api.get('/api/agriculteurs', { params: { page: 0, size: 50 } })
+        .then((r) => setData(r.data))
+        .catch((e) => setError(errorMessage(e)))
     } catch (err) {
       setError(errorMessage(err))
     }
   }
 
-  if (error) return <ErrorBox message={error} />
-  if (!data) return <Loading />
+  if (!data) return error ? <ErrorBox message={error} /> : <Loading />
 
   const list = data.content
 
   return (
     <>
       <SuccessBox message={msg} />
-      <div className="row">
-        <h1 style={{ margin: 0 }}>Agriculteurs</h1>
+      <ErrorBox message={error} />
+      <div className="row page-actions">
+        <div>
+          <h2 className="section-title">Agriculteurs</h2>
+          <p className="section-sub">Recensement, rattachement aux collines et notifications.</p>
+        </div>
         <button className="btn" onClick={() => setShowCreate((v) => !v)}>
           {showCreate ? 'Annuler' : 'Nouvel agriculteur'}
         </button>
@@ -182,6 +202,7 @@ export default function Agriculteurs() {
             </label>
           </div>
           <button className="btn">Créer</button>
+          <button type="button" className="btn outline" onClick={() => setShowCreate(false)}>Annuler</button>
         </form>
       )}
 

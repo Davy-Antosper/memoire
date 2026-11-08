@@ -14,6 +14,7 @@ export default function Lots() {
   const [form, set] = useForm({ numeroLot: '', engraisTypeId: null, quantiteInitiale: '', dateFabrication: '', datePeremption: '' })
 
   function load(numero) {
+    setError('')
     const url = numero && numero.trim() ? `/api/lots/recherche?numero=${encodeURIComponent(numero.trim())}` : '/api/lots'
     api.get(url).then((r) => setLots(r.data)).catch((e) => setError(errorMessage(e)))
   }
@@ -51,14 +52,17 @@ export default function Lots() {
     load(v)
   }
 
-  if (error) return <ErrorBox message={error} />
-  if (!lots) return <Loading />
+  if (!lots) return error ? <ErrorBox message={error} /> : <Loading />
 
   return (
     <>
       <SuccessBox message={msg} />
-      <div className="row">
-        <h1 style={{ margin: 0 }}>Lots</h1>
+      <ErrorBox message={error} />
+      <div className="row page-actions">
+        <div>
+          <h2 className="section-title">Lots d’engrais</h2>
+          <p className="section-sub">Traçabilité des fabrications et dates de péremption.</p>
+        </div>
         {['ADMIN', 'AGENT_LOGISTIQUE'].includes(user.role) && (
           <button className="btn outline" onClick={() => setShowCreate((v) => !v)}>
             {showCreate ? 'Annuler' : 'Nouveau lot'}
@@ -90,6 +94,7 @@ export default function Lots() {
             </Field>
           </div>
           <button className="btn">Créer le lot</button>
+          <button type="button" className="btn outline" onClick={() => setShowCreate(false)}>Annuler</button>
         </form>
       )}
 

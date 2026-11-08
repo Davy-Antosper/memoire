@@ -2,6 +2,10 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
+// En développement, l'API locale tourne sur http://localhost:8080.
+// Le proxy évite les problèmes de CORS et garde des URLs relatives côté client.
+const API_TARGET = process.env.VITE_PROXY_TARGET || 'http://localhost:8080'
+
 export default defineConfig({
   base: './',
   plugins: [
@@ -10,11 +14,11 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icons/icon-192.png', 'icons/icon-512.png'],
       manifest: {
-        name: 'Fomi Stock',
-        short_name: 'FomiStock',
+        name: 'FOMI Stock',
+        short_name: 'FOMIStock',
         description: 'Gestion des stocks d’engrais FOMI',
-        theme_color: '#15803d',
-        background_color: '#f4f7f5',
+        theme_color: '#0b3d1f',
+        background_color: '#f4f6f2',
         display: 'standalone',
         start_url: './',
         lang: 'fr',
@@ -31,7 +35,10 @@ export default defineConfig({
   ],
   server: {
     proxy: {
-      '/api': 'https://fomi-stock-api-production.up.railway.app'
+      '/api': {
+        target: API_TARGET,
+        changeOrigin: true
+      }
     }
   }
 })

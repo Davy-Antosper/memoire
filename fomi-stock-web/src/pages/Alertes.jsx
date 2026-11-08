@@ -1,16 +1,20 @@
 import { useEffect, useState } from 'react'
 import { api, errorMessage } from '../api/client'
 import { Loading, ErrorBox, Badge, Empty } from '../components/ui'
+import { useAuth } from '../auth/AuthContext'
 
-const NIVEAU_TONES = { CRITIQUE: 'red', HAUTE: 'red', MOYENNE: 'amber', BASSE: 'neutral' }
+const NIVEAU_TONES = { INFO: 'blue', WARNING: 'amber', CRITICAL: 'red' }
 
 export default function Alertes() {
+  const { user } = useAuth()
+  const canTraiter = user.role === 'ADMIN'
   const [list, setList] = useState(null)
   const [error, setError] = useState('')
   const [nonTraitees, setNonTraitees] = useState(true)
 
   function load(onlyUntreated) {
     setList(null)
+    setError('')
     api.get('/api/alertes', { params: onlyUntreated ? { nonTraitees: true } : {} })
       .then((r) => setList(r.data))
       .catch((e) => setError(errorMessage(e)))
@@ -27,12 +31,17 @@ export default function Alertes() {
       .catch((e) => setError(errorMessage(e)))
   }
 
-  if (error) return <ErrorBox message={error} />
-  if (!list) return <Loading />
+  if (!list) return error ? <ErrorBox message={error} /> : <Loading />
 
   return (
     <>
-      <h1>Alertes</h1>
+      <div className="page-actions">
+        <div>
+          <h2 className="section-title">Alertes de stock</h2>
+          <p className="section-sub">Seuils bas, ruptures et anomalies détectées sur les dépôts.</p>
+        </div>
+      </div>
+      <ErrorBox message={error} />
       <div className="filter-bar">
         <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <input type="checkbox" checked={nonTraitees} onChange={(e) => {
@@ -63,8 +72,10 @@ export default function Alertes() {
                   <td>
                     {a.traitee ? (
                       <Badge tone="green">Traitée</Badge>
-                    ) : (
+                    ) : canTraiter ? (
                       <button className="btn outline" onClick={() => traiter(a.id)}>Traiter</button>
+                    ) : (
+                      <Badge tone="amber">Non traitée</Badge>
                     )}
                   </td>
                 </tr>

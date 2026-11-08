@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api, errorMessage } from '../api/client'
 import { Loading, ErrorBox, Stat, Empty } from '../components/ui'
+import { AlertIcon, DistributionIcon, PackageIcon, TrendIcon, WarningIcon } from '../components/icons'
 
 export default function Dashboard() {
   const [data, setData] = useState(null)
@@ -27,25 +28,39 @@ export default function Dashboard() {
   const servis = data.taux.reduce((s, r) => s + r.servi, 0)
   const commandes = data.taux.reduce((s, r) => s + r.commande, 0)
 
+  const tauxService = commandes ? Math.round((servis / commandes) * 100) : null
+
   return (
     <>
-      <h1>Tableau de bord</h1>
+      <div className="page-actions">
+        <div>
+          <h2 className="section-title">Vue d’ensemble</h2>
+          <p className="section-sub">Indicateurs consolidés du réseau de stockage FOMI.</p>
+        </div>
+      </div>
       <div className="stat-grid">
-        <Stat label="Stock total (sacs)" value={totalStock.toLocaleString('fr-FR')} />
-        <Stat label="Distribué (sacs)" value={totalDistribue.toLocaleString('fr-FR')} />
+        <Stat icon={PackageIcon} label="Stock total (sacs)" value={totalStock.toLocaleString('fr-FR')} hint="Tous dépôts confondus" />
+        <Stat icon={DistributionIcon} label="Distribué (sacs)" value={totalDistribue.toLocaleString('fr-FR')} hint="Cumul des sorties" />
         <Stat
+          icon={WarningIcon}
           label="Ruptures"
           value={data.ruptures.length}
           tone={data.ruptures.length ? 'var(--red)' : undefined}
+          hint={data.ruptures.length ? 'Action requise' : 'Aucune rupture'}
         />
         <Stat
+          icon={AlertIcon}
           label="Alertes non traitées"
           value={data.alertes.length}
           tone={data.alertes.length ? 'var(--amber)' : undefined}
+          hint={data.alertes.length ? 'À examiner' : 'Tout est traité'}
         />
         <Stat
+          icon={TrendIcon}
           label="Taux de service"
-          value={commandes ? `${Math.round((servis / commandes) * 100)}%` : '—'}
+          value={tauxService === null ? '—' : `${tauxService}%`}
+          tone={tauxService !== null && tauxService < 80 ? 'var(--amber)' : undefined}
+          hint="Servi / commandé"
         />
       </div>
 

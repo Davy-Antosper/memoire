@@ -40,7 +40,7 @@ Le schéma et les données de démonstration (géographie, dépôts, 500 agricul
 |----------------|--------------|---------------|------------------------------------|
 | `admin`        | `password`   | ADMIN         | Tout                               |
 | `agent.zone`   | `password`   | AGENT_ZONE    | Zone Gitega Centre (id 1)          |
-| `agent.colline`| `password`   | AGENT_COLLINE | Dépôt DEP-MUT (id 6)               |
+| `agent.colline`| `password`   | AGENT_COLLINE | Dépôt de zone DEP-MUT (id 6)       |
 | `superviseur`  | `password`   | SUPERVISEUR   | Lecture statistiques               |
 | `agent.fomi`   | `password`   | AGENT_LOGISTIQUE | Réceptions de lots FOMI         |
 
@@ -92,9 +92,14 @@ Les paramètres de connexion sont surchargeables avec `-Dfomi.test.db.url`, `-Df
 ### Géographie et référentiel
 | Méthode | URL | Rôles |
 |---------|-----|-------|
-| GET | `/api/provinces`, `/api/zones`, `/api/collines` | authentifié |
-| GET | `/api/provinces/{id}/zones`, `/api/zones/{id}/collines` | authentifié |
+| GET | `/api/provinces`, `/api/communes`, `/api/zones`, `/api/collines` | authentifié |
+| GET | `/api/provinces/{id}/communes`, `/api/provinces/{id}/zones` | authentifié |
+| GET | `/api/communes/{id}/zones`, `/api/zones/{id}/collines` | authentifié |
 | GET | `/api/engrais-types` | authentifié |
+
+Hiérarchie officielle : `Province → Commune → Zone → Colline`. La colline est le
+lieu de résidence des agriculteurs ; seuls les dépôts `PROVINCE` (logistique) et
+`ZONE` (distribution) existent.
 
 ### Agriculteurs
 | Méthode | URL | Rôles |
@@ -122,8 +127,8 @@ Les paramètres de connexion sont surchargeables avec `-Dfomi.test.db.url`, `-Df
 |---------|-----|-------|
 | GET | `/api/depots`, `/api/depots/{id}` | authentifié |
 | GET | `/api/depots/{id}/stock` | authentifié |
-| POST | `/api/depots` | authentifié |
-| PUT | `/api/depots/{id}` | authentifié |
+| POST | `/api/depots` | ADMIN |
+| PUT | `/api/depots/{id}` | ADMIN |
 
 ### Stocks
 | Méthode | URL | Rôles |
@@ -221,6 +226,6 @@ src/main/java/bi/fomi/stock/
 ├── model/          # Entités JPA et enums
 ├── security/       # JWT, filtres, config
 └── exception/      # Gestion d'erreurs centralisée
-src/main/resources/db/migration/   # Schéma et seeds Flyway (V1 à V12)
+src/main/resources/db/migration/   # Schéma et seeds Flyway (V1 à V13)
 src/test/java/bi/fomi/stock/       # tests d'intégration
 ```

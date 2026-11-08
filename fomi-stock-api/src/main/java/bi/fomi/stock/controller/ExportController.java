@@ -30,25 +30,36 @@ public class ExportController {
     @GetMapping(value = "/tickets.csv", produces = "text/csv;charset=UTF-8")
     @Transactional(readOnly = true)
     public byte[] exportTickets(@RequestParam(required = false) Long depotId,
-                                @RequestParam(required = false) StatutTicket statut) {
+                                @RequestParam(required = false) StatutTicket statut,
+                                @RequestParam(required = false) String saison) {
+        String saisonFiltre = saison == null || saison.isBlank() ? null : saison.trim();
+        PageRequest page = PageRequest.of(0, 100000);
         List<Ticket> tickets;
-        if (depotId != null && statut != null) {
-            tickets = ticketRepository.findByDepotRetraitIdAndStatut(depotId, statut, PageRequest.of(0, 100000))
+        if (depotId != null && statut != null && saisonFiltre != null) {
+            tickets = ticketRepository.findByDepotRetraitIdAndStatutAndSaison(depotId, statut, saisonFiltre, page)
                     .getContent();
+        } else if (depotId != null && statut != null) {
+            tickets = ticketRepository.findByDepotRetraitIdAndStatut(depotId, statut, page).getContent();
+        } else if (depotId != null && saisonFiltre != null) {
+            tickets = ticketRepository.findByDepotRetraitIdAndSaison(depotId, saisonFiltre, page).getContent();
+        } else if (statut != null && saisonFiltre != null) {
+            tickets = ticketRepository.findByStatutAndSaison(statut, saisonFiltre, page).getContent();
         } else if (depotId != null) {
-            tickets = ticketRepository.findByDepotRetraitId(depotId, PageRequest.of(0, 100000)).getContent();
+            tickets = ticketRepository.findByDepotRetraitId(depotId, page).getContent();
         } else if (statut != null) {
-            tickets = ticketRepository.findByStatut(statut, PageRequest.of(0, 100000)).getContent();
+            tickets = ticketRepository.findByStatut(statut, page).getContent();
+        } else if (saisonFiltre != null) {
+            tickets = ticketRepository.findBySaison(saisonFiltre, page).getContent();
         } else {
-            tickets = ticketRepository.findAll(PageRequest.of(0, 100000)).getContent();
+            tickets = ticketRepository.findAll(page).getContent();
         }
 
         StringBuilder sb = new StringBuilder();
         sb.append("Numéro").append(SEPARATOR).append("Agriculteur").append(SEPARATOR).append("Engrais")
                 .append(SEPARATOR).append("Commandé").append(SEPARATOR).append("Servi").append(SEPARATOR)
                 .append("Restant").append(SEPARATOR).append("Montant payé").append(SEPARATOR).append("Date paiement")
-                .append(SEPARATOR).append("Dépôt retrait").append(SEPARATOR).append("Statut").append(SEPARATOR)
-                .append("Date création").append(LINE_BREAK);
+                .append(SEPARATOR).append("Dépôt retrait").append(SEPARATOR).append("Saison").append(SEPARATOR)
+                .append("Statut").append(SEPARATOR).append("Date création").append(LINE_BREAK);
         for (Ticket t : tickets) {
             sb.append(escape(t.getNumeroTicket())).append(SEPARATOR)
                     .append(t.getAgriculteur() != null
@@ -60,6 +71,7 @@ public class ExportController {
                     .append(t.getMontantPaye() != null ? t.getMontantPaye().toPlainString() : "").append(SEPARATOR)
                     .append(t.getDatePaiement()).append(SEPARATOR)
                     .append(t.getDepotRetrait() != null ? escape(t.getDepotRetrait().getCode()) : "").append(SEPARATOR)
+                    .append(t.getSaison() != null ? escape(t.getSaison()) : "").append(SEPARATOR)
                     .append(t.getStatut()).append(SEPARATOR)
                     .append(t.getDateCreation()).append(LINE_BREAK);
         }

@@ -42,9 +42,9 @@ class SecuriteRbacIntegrationTest extends BaseIntegrationTest {
     void agentZoneNePeutPasModifierUnSeuilDAlerte() throws Exception {
         MvcResult result = apiPut("/api/depots/9", token("agent.zone"), Map.of(
                 "code", "DEP-MWE",
-                "nom", "Dépôt Colline Mwendo",
-                "niveau", "COLLINE",
-                "collineId", 6,
+                "nom", "Dépôt Zone Mwendo",
+                "niveau", "ZONE",
+                "zoneId", 4,
                 "seuilAlerteMin", 5));
         assertThat(code(result)).isEqualTo(403);
     }

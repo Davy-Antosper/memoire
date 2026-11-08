@@ -7,7 +7,9 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ZoneRepository extends JpaRepository<Zone, Long> {
-    List<Zone> findByProvinceId(Long provinceId);
+    List<Zone> findByCommuneId(Long communeId);
+
+    List<Zone> findByCommuneProvinceId(Long provinceId);
 
     Optional<Zone> findByCode(String code);
 }

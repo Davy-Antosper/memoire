@@ -85,19 +85,18 @@ class DepotIntegrationTest extends BaseIntegrationTest {
         JsonNode d = node(result);
         assertThat(d.get("niveau").asText()).isEqualTo("ZONE");
         assertThat(d.get("zoneNom").asText()).isEqualTo("Gitega Centre");
+        assertThat(d.get("communeNom").asText()).isEqualTo("Gitega");
+        assertThat(d.get("provinceNom").asText()).isEqualTo("Gitega");
     }
 
     @Test
-    void creerDepotColline() throws Exception {
+    void creerDepotCollineRefuse() throws Exception {
         MvcResult result = apiPost("/api/depots", tokenAdmin(), Map.of(
                 "code", "DEP-NEW-C",
                 "nom", "Nouveau Colline",
                 "niveau", "COLLINE",
                 "collineId", 3));
-        assertThat(code(result)).isEqualTo(200);
-        JsonNode d = node(result);
-        assertThat(d.get("niveau").asText()).isEqualTo("COLLINE");
-        assertThat(d.get("collineNom").asText()).isEqualTo("Gisozi");
+        assertThat(code(result)).isEqualTo(400);
     }
 
     @Test
@@ -133,14 +132,16 @@ class DepotIntegrationTest extends BaseIntegrationTest {
         String token = tokenAdmin();
         MvcResult result = apiPut("/api/depots/9", token, Map.of(
                 "code", "DEP-MWE",
-                "nom", "Dépôt Colline Mwendo (modifié)",
-                "niveau", "COLLINE",
-                "collineId", 6,
+                "nom", "Dépôt Zone Mwendo (modifié)",
+                "niveau", "ZONE",
+                "zoneId", 4,
                 "seuilAlerteMin", 75));
         assertThat(code(result)).isEqualTo(200);
         JsonNode d = node(result);
-        assertThat(d.get("nom").asText()).isEqualTo("Dépôt Colline Mwendo (modifié)");
+        assertThat(d.get("nom").asText()).isEqualTo("Dépôt Zone Mwendo (modifié)");
         assertThat(d.get("seuilAlerteMin").asInt()).isEqualTo(75);
+        assertThat(d.get("zoneNom").asText()).isEqualTo("Ngozi Centre");
+        assertThat(d.get("communeNom").asText()).isEqualTo("Ngozi");
     }
 
     @Test
@@ -148,8 +149,8 @@ class DepotIntegrationTest extends BaseIntegrationTest {
         MvcResult result = apiPut("/api/depots/9", tokenAdmin(), Map.of(
                 "code", "DEP-GIT-P",
                 "nom", "Doublon",
-                "niveau", "COLLINE",
-                "collineId", 6));
+                "niveau", "ZONE",
+                "zoneId", 4));
         assertThat(code(result)).isEqualTo(400);
     }
 

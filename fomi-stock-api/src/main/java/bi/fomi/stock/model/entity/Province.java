@@ -31,7 +31,7 @@ public class Province {
 
     @OneToMany(mappedBy = "province")
     @Builder.Default
-    private List<Zone> zones = new ArrayList<>();
+    private List<Commune> communes = new ArrayList<>();
 
     @PrePersist
     void prePersist() {

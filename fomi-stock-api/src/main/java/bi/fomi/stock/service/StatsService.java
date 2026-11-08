@@ -57,22 +57,18 @@ public class StatsService {
                             FROM Stock s
                             LEFT JOIN s.depot.province p
                             LEFT JOIN s.depot.zone z
-                            LEFT JOIN z.province zp
-                            LEFT JOIN s.depot.colline c
-                            LEFT JOIN c.zone cz
-                            LEFT JOIN cz.province czp
-                            WHERE p.id = :pid OR zp.id = :pid OR czp.id = :pid
+                            LEFT JOIN z.commune zc
+                            LEFT JOIN zc.province zp
+                            WHERE p.id = :pid OR zp.id = :pid
                             """, Long.class).setParameter("pid", pid).getSingleResult()).longValue();
             long distribue = ((Number) em.createQuery("""
                             SELECT COALESCE(SUM(d.quantite), 0)
                             FROM Distribution d
                             LEFT JOIN d.depot.province p
                             LEFT JOIN d.depot.zone z
-                            LEFT JOIN z.province zp
-                            LEFT JOIN d.depot.colline c
-                            LEFT JOIN c.zone cz
-                            LEFT JOIN cz.province czp
-                            WHERE p.id = :pid OR zp.id = :pid OR czp.id = :pid
+                            LEFT JOIN z.commune zc
+                            LEFT JOIN zc.province zp
+                            WHERE p.id = :pid OR zp.id = :pid
                             """, Long.class).setParameter("pid", pid).getSingleResult()).longValue();
             resultat.add(new StockParZoneResponse(province.getNom(), stock, distribue, stock - distribue));
         }
@@ -124,7 +120,7 @@ public class StatsService {
                         JOIN t.agriculteur a
                         JOIN a.colline c
                         JOIN c.zone z
-                        JOIN z.province p
+                        JOIN z.commune.province p
                         WHERE t.statut <> :annule
                         GROUP BY p.id, p.nom
                         ORDER BY p.nom

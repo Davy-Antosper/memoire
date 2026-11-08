@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api, downloadCsv, errorMessage } from '../api/client'
 import { Loading, ErrorBox, SuccessBox, Badge, Field, useForm, Empty, Pagination } from '../components/ui'
 import { useAuth } from '../auth/AuthContext'
+import { DownloadIcon } from '../components/icons'
 
 const TYPE_TONES = {
   RECEPTION_FOMI: 'green',
@@ -10,10 +11,20 @@ const TYPE_TONES = {
   AJUSTEMENT: 'neutral'
 }
 
+function nouvelleCleIdempotence() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+  // Repli pour les navigateurs anciens ou les contextes non sécurisés (HTTP).
+  return `mvt-${Date.now()}-${Math.random().toString(16).slice(2)}-${Math.random().toString(16).slice(2)}`
+}
+
 export default function Mouvements() {
   const { user } = useAuth()
-  const canWrite = user.role === 'ADMIN' || user.role === 'AGENT_ZONE' || user.role === 'AGENT_LOGISTIQUE'
+  // Réception : ADMIN + AGENT_LOGISTIQUE ; transfert : ADMIN uniquement (cf. SecurityConfig).
+  const canReception = ['ADMIN', 'AGENT_LOGISTIQUE'].includes(user.role)
   const canTransfert = user.role === 'ADMIN'
+  const canWrite = canReception || canTransfert
   const canExport = ['ADMIN', 'SUPERVISEUR', 'AGENT_ZONE', 'AGENT_LOGISTIQUE'].includes(user.role)
   const [data, setData] = useState(null)
   const [page, setPage] = useState(0)
@@ -31,7 +42,7 @@ export default function Mouvements() {
     depotSourceId: null,
     depotDestId: null,
     commentaire: '',
-    idempotencyKey: crypto.randomUUID()
+    idempotencyKey: nouvelleCleIdempotence()
   })
 
   useEffect(() => {
@@ -49,6 +60,7 @@ export default function Mouvements() {
 
   function load() {
     setData(null)
+    setError('')
     api.get('/api/mouvements', { params: { page, size: 50 } })
       .then((r) => setData(r.data))
       .catch((e) => setError(errorMessage(e)))
@@ -85,7 +97,11 @@ export default function Mouvements() {
       const { data } = await api.post(endpoint, payload)
       const rows = Array.isArray(data) ? data : [data]
       setMsg(`${rows.length} mouvement(s) enregistré(s)`)
+      // Régénérer la clé d'idempotence : sinon une réutilisation du formulaire
+      // renverrait la même clé et le serveur considérerait l'opération comme déjà traitée.
       reset()
+      setAll({ idempotencyKey: nouvelleCleIdempotence() })
+      setLotNumero('')
       setPage(0)
       load()
     } catch (err) {
@@ -93,15 +109,18 @@ export default function Mouvements() {
     }
   }
 
-  if (!data) return <Loading />
+  if (!data) return error ? <ErrorBox message={error} /> : <Loading />
 
   const list = data.content
 
   return (
     <>
       <SuccessBox message={msg} />
-      <div className="row">
-        <h1 style={{ margin: 0 }}>Mouvements</h1>
+      <div className="row page-actions">
+        <div>
+          <h2 className="section-title">Mouvements de stock</h2>
+          <p className="section-sub">Réceptions fournisseur, transferts et historique des opérations.</p>
+        </div>
         {canExport && (
           <button
             className="btn outline"
@@ -110,6 +129,7 @@ export default function Mouvements() {
                 .catch((e) => setError(errorMessage(e)))
             }
           >
+            <DownloadIcon size={17} />
             Exporter CSV
           </button>
         )}
@@ -119,11 +139,11 @@ export default function Mouvements() {
       {canWrite && (
         <div className="card">
           <div className="row">
-            <h2 style={{ margin: 0 }}>Nouveau mouvement</h2>
-            {canTransfert && (
-              <div style={{ display: 'flex', gap: 6 }}>
-                <button className={tab === 'reception' ? 'btn' : 'btn outline'} onClick={() => setTab('reception')}>Réception</button>
-                <button className={tab === 'transfert' ? 'btn' : 'btn outline'} onClick={() => setTab('transfert')}>Transfert</button>
+            <h2 style={{ margin: 0 }}>{tab === 'transfert' ? 'Nouveau transfert' : 'Nouvelle réception'}</h2>
+            {canReception && canTransfert && (
+              <div className="segmented">
+                <button type="button" className={tab === 'reception' ? 'active' : ''} onClick={() => setTab('reception')}>Réception</button>
+                <button type="button" className={tab === 'transfert' ? 'active' : ''} onClick={() => setTab('transfert')}>Transfert</button>
               </div>
             )}
           </div>

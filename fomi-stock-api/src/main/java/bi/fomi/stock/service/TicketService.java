@@ -220,13 +220,22 @@ public class TicketService {
 
     @Transactional(readOnly = true)
     public Page<TicketResponse> lister(Long depotId, StatutTicket statut, String saison, Pageable pageable) {
+        String saisonFiltre = (saison == null || saison.isBlank()) ? null : saison.trim();
         Page<Ticket> tickets;
-        if (depotId != null && statut != null) {
+        if (depotId != null && statut != null && saisonFiltre != null) {
+            tickets = ticketRepository.findByDepotRetraitIdAndStatutAndSaison(depotId, statut, saisonFiltre, pageable);
+        } else if (depotId != null && saisonFiltre != null) {
+            tickets = ticketRepository.findByDepotRetraitIdAndSaison(depotId, saisonFiltre, pageable);
+        } else if (depotId != null && statut != null) {
             tickets = ticketRepository.findByDepotRetraitIdAndStatut(depotId, statut, pageable);
         } else if (depotId != null) {
             tickets = ticketRepository.findByDepotRetraitId(depotId, pageable);
+        } else if (statut != null && saisonFiltre != null) {
+            tickets = ticketRepository.findByStatutAndSaison(statut, saisonFiltre, pageable);
         } else if (statut != null) {
             tickets = ticketRepository.findByStatut(statut, pageable);
+        } else if (saisonFiltre != null) {
+            tickets = ticketRepository.findBySaison(saisonFiltre, pageable);
         } else {
             tickets = ticketRepository.findAll(pageable);
         }

@@ -14,7 +14,12 @@ import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-STEPS = ["canevas_restructure.py", "canevas_fixfacts.py", "canevas_finalize.py"]
+STEPS = [
+    "canevas_restructure.py",
+    "canevas_fixfacts.py",
+    "canevas_finalize.py",
+    "update_docx_model.py",
+]
 
 env = dict(os.environ)
 env.setdefault("PYTHONIOENCODING", "utf-8")

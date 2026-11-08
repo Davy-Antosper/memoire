@@ -62,3 +62,13 @@ SÉCURITÉ : token GitHub exposé dans fomi.txt — utilisateur doit le révoque
 - Tests : `BaseIntegrationTest` accepte une base PostgreSQL locale sans Docker (`mvn test -Dfomi.test.localdb=true`, base `fomi_test`) ; `StockConcurrenceIntegrationTest` réutilise la même configuration.
 
 - Page de garde validée le 01/11/2026 : **Université du Lac Tanganyika**, Faculté d'Informatique – Département de Génie Logiciel, deux auteurs (Ishimwe Antosper Davy et Itangiteka Dickson Polland), sous la direction de Prof. Mme Providence, année académique 2025-2026. Le rapport et `memoire_fomi_stock.docx` portent déjà cette page de garde ; aucune mention « Université du Burundi », d'auteur unique ni de formulation au singulier ne subsiste.
+
+## Mise à jour du 08/11/2026 — modèle strict FOMI et refonte web
+- Référentiel officiel : Province → Commune → Zone → Colline ; la table `commune` (V13) s'intercale entre la province et la zone.
+- Dépôts limités à deux niveaux : `PROVINCE` (logistique) et `ZONE` (distribution). Aucun dépôt communal ou de colline ; la colline reste le lieu de résidence des agriculteurs.
+- Migration `V13__commune_depots_province_zone.sql` : création de `commune`, ajout de `zone.commune_id`, conversion des anciens dépôts de colline en dépôts de zone (ids 6 à 9 conservés), suppression de `zone.province_id` et `depot.colline_id`, enum `niveau_depot` réduit à `PROVINCE`/`ZONE`.
+- API : nouveaux endpoints `/api/communes`, `/api/provinces/{id}/communes`, `/api/communes/{id}/zones` ; `DepotResponse` expose `communeId`/`communeNom`.
+- Erreurs HTTP : un en-tête `Accept` incompatible renvoie désormais 406 au lieu de 500 (cas de l'export CSV).
+- Front : thème clair/sombre persistant (`fomi_theme`), script anti-flash dans `index.html`, adaptation de toutes les pages, cascade Province → Commune → Zone dans `Depots.jsx`.
+- Tests : 218 tests JUnit (0 échec) et 29 vérifications E2E (`scripts/e2e_api.ps1`, 0 échec).
+- Documentation : `Rapport_stage_FOMI_canevas.docx` aligné (17 tables, 13 migrations, 65 endpoints, deux niveaux de dépôt) via `update_docx_model.py`, intégré à `build_rapport.py`.

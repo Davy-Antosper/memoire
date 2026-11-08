@@ -3,7 +3,17 @@ import { api, errorMessage } from '../api/client'
 import { Loading, ErrorBox, SuccessBox, Badge, Empty, Field, useForm } from '../components/ui'
 import { useAuth } from '../auth/AuthContext'
 
-const NIVEAU_TONES = { PROVINCE: 'green', ZONE: 'amber', COLLINE: 'neutral' }
+const NIVEAU_TONES = { PROVINCE: 'green', ZONE: 'amber' }
+
+const EMPTY_FORM = {
+  code: '',
+  nom: '',
+  niveau: 'PROVINCE',
+  provinceId: null,
+  communeId: null,
+  zoneId: null,
+  seuilAlerteMin: 10
+}
 
 export default function Depots() {
   const { user } = useAuth()
@@ -14,10 +24,10 @@ export default function Depots() {
   const [showCreate, setShowCreate] = useState(false)
   const [editing, setEditing] = useState(null)
   const [provinces, setProvinces] = useState([])
+  const [communes, setCommunes] = useState([])
   const [zones, setZones] = useState([])
-  const [collines, setCollines] = useState([])
   const [msg, setMsg] = useState('')
-  const [form, set, setAll] = useForm({ code: '', nom: '', niveau: 'PROVINCE', provinceId: null, zoneId: null, collineId: null, seuilAlerteMin: 10 })
+  const [form, set, setAll] = useForm(EMPTY_FORM)
 
   useEffect(() => {
     api.get('/api/depots')
@@ -27,28 +37,33 @@ export default function Depots() {
 
   useEffect(() => {
     if (!showCreate) return
-    setProvinces([])
+    setCommunes([])
     setZones([])
-    setCollines([])
     api.get('/api/provinces').then((r) => setProvinces(r.data)).catch(() => {})
-    if (editing) {
-      if (editing.provinceId) api.get(`/api/provinces/${editing.provinceId}/zones`).then((r) => setZones(r.data)).catch(() => {})
-      if (editing.zoneId) api.get(`/api/zones/${editing.zoneId}/collines`).then((r) => setCollines(r.data)).catch(() => {})
+    if (editing?.provinceId) {
+      api.get(`/api/provinces/${editing.provinceId}/communes`)
+        .then((r) => setCommunes(r.data))
+        .catch(() => {})
+    }
+    if (editing?.communeId) {
+      api.get(`/api/communes/${editing.communeId}/zones`)
+        .then((r) => setZones(r.data))
+        .catch(() => {})
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showCreate])
 
   function onProvince(id) {
-    setAll({ provinceId: id, zoneId: null, collineId: null })
+    setAll({ provinceId: id, communeId: null, zoneId: null })
+    setCommunes([])
     setZones([])
-    setCollines([])
-    if (id) api.get(`/api/provinces/${id}/zones`).then((r) => setZones(r.data)).catch(() => {})
+    if (id) api.get(`/api/provinces/${id}/communes`).then((r) => setCommunes(r.data)).catch(() => {})
   }
 
-  function onZone(id) {
-    setAll({ zoneId: id, collineId: null })
-    setCollines([])
-    if (id) api.get(`/api/zones/${id}/collines`).then((r) => setCollines(r.data)).catch(() => {})
+  function onCommune(id) {
+    setAll({ communeId: id, zoneId: null })
+    setZones([])
+    if (id) api.get(`/api/communes/${id}/zones`).then((r) => setZones(r.data)).catch(() => {})
   }
 
   function openDepot(depot) {
@@ -59,21 +74,31 @@ export default function Depots() {
       .catch((e) => setError(errorMessage(e)))
   }
 
+  function closeForm() {
+    setShowCreate(false)
+    setEditing(null)
+    setMsg('')
+  }
+
   function startCreate() {
     setEditing(null)
-    setAll({ code: '', nom: '', niveau: 'PROVINCE', provinceId: null, zoneId: null, collineId: null, seuilAlerteMin: 10 })
+    setError('')
+    setMsg('')
+    setAll(EMPTY_FORM)
     setShowCreate(true)
   }
 
   function startEdit(d) {
     setEditing(d)
+    setError('')
+    setMsg('')
     setAll({
       code: d.code,
       nom: d.nom,
       niveau: d.niveau,
       provinceId: d.provinceId,
+      communeId: d.communeId,
       zoneId: d.zoneId,
-      collineId: d.collineId,
       seuilAlerteMin: d.seuilAlerteMin
     })
     setShowCreate(true)
@@ -82,14 +107,14 @@ export default function Depots() {
   async function save(e) {
     e.preventDefault()
     setMsg('')
+    setError('')
     try {
       const payload = {
         code: form.code,
         nom: form.nom,
         niveau: form.niveau,
-        provinceId: form.provinceId,
-        zoneId: form.zoneId,
-        collineId: form.collineId,
+        provinceId: form.niveau === 'PROVINCE' && form.provinceId ? Number(form.provinceId) : null,
+        zoneId: form.niveau === 'ZONE' && form.zoneId ? Number(form.zoneId) : null,
         seuilAlerteMin: Number(form.seuilAlerteMin)
       }
       const { data } = editing
@@ -101,23 +126,25 @@ export default function Depots() {
         setDepots((prev) => [...prev, data])
       }
       setMsg(editing ? 'Dépôt modifié' : 'Dépôt créé')
-      setShowCreate(false)
-      setEditing(null)
+      closeForm()
     } catch (err) {
       setError(errorMessage(err))
     }
   }
 
-  if (error) return <ErrorBox message={error} />
-  if (!depots) return <Loading />
+  if (!depots) return error ? <ErrorBox message={error} /> : <Loading />
 
   return (
     <>
       <SuccessBox message={msg} />
-      <div className="row">
-        <h1 style={{ margin: 0 }}>Dépôts</h1>
+      <ErrorBox message={error} />
+      <div className="row page-actions">
+        <div>
+          <h2 className="section-title">Dépôts</h2>
+          <p className="section-sub">Réseau FOMI : dépôts provinciaux (logistique) et dépôts de zone (distribution).</p>
+        </div>
         {user.role === 'ADMIN' && (
-          <button className="btn outline" onClick={startCreate}>
+          <button className="btn outline" onClick={() => (showCreate ? closeForm() : startCreate())}>
             {showCreate ? 'Annuler' : 'Nouveau dépôt'}
           </button>
         )}
@@ -135,50 +162,58 @@ export default function Depots() {
             </Field>
             <Field label="Niveau">
               <select value={form.niveau} onChange={set('niveau')}>
-                <option value="PROVINCE">Province</option>
-                <option value="ZONE">Zone</option>
-                <option value="COLLINE">Colline</option>
+                <option value="PROVINCE">Province (logistique)</option>
+                <option value="ZONE">Zone (distribution)</option>
               </select>
             </Field>
             <Field label="Seuil d'alerte (sacs)">
               <input type="number" min="0" value={form.seuilAlerteMin} onChange={set('seuilAlerteMin')} />
             </Field>
             <Field label="Province">
-              <select value={form.provinceId || ''} onChange={(e) => onProvince(e.target.value)}>
+              <select value={form.provinceId || ''} onChange={(e) => onProvince(e.target.value)} required={form.niveau === 'PROVINCE'}>
                 <option value="">—</option>
                 {provinces.map((p) => <option key={p.id} value={p.id}>{p.nom}</option>)}
               </select>
             </Field>
-            <Field label="Zone">
-              <select value={form.zoneId || ''} onChange={(e) => onZone(e.target.value)}>
-                <option value="">—</option>
-                {zones.map((z) => <option key={z.id} value={z.id}>{z.nom}</option>)}
-              </select>
-            </Field>
-            <Field label="Colline">
-              <select value={form.collineId || ''} onChange={set('collineId')}>
-                <option value="">—</option>
-                {collines.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
-              </select>
-            </Field>
+            {form.niveau === 'ZONE' && (
+              <>
+                <Field label="Commune">
+                  <select value={form.communeId || ''} onChange={(e) => onCommune(e.target.value)} required>
+                    <option value="">—</option>
+                    {communes.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
+                  </select>
+                </Field>
+                <Field label="Zone">
+                  <select value={form.zoneId || ''} onChange={set('zoneId')} required disabled={!form.communeId}>
+                    <option value="">—</option>
+                    {zones.map((z) => <option key={z.id} value={z.id}>{z.nom}</option>)}
+                  </select>
+                </Field>
+              </>
+            )}
           </div>
-          <button className="btn">{editing ? 'Enregistrer' : 'Créer le dépôt'}</button>
+          <div className="row" style={{ marginTop: 12 }}>
+            <button className="btn">{editing ? 'Enregistrer' : 'Créer le dépôt'}</button>
+            <button type="button" className="btn outline" onClick={closeForm}>Annuler</button>
+          </div>
         </form>
       )}
 
       <div className="card">
         <table>
           <thead>
-            <tr><th>Code</th><th>Nom</th><th>Niveau</th><th>Province</th><th></th></tr>
+            <tr><th>Code</th><th>Nom</th><th>Niveau</th><th>Province</th><th>Commune</th><th>Zone</th><th></th></tr>
           </thead>
           <tbody>
-            {depots.length === 0 && <tr><td colSpan={5}><Empty /></td></tr>}
+            {depots.length === 0 && <tr><td colSpan={7}><Empty /></td></tr>}
             {depots.map((d) => (
               <tr key={d.id}>
                 <td><strong>{d.code}</strong></td>
                 <td>{d.nom}</td>
                 <td><Badge tone={NIVEAU_TONES[d.niveau]}>{d.niveau}</Badge></td>
-                <td>{d.provinceNom}</td>
+                <td>{d.provinceNom || '—'}</td>
+                <td>{d.communeNom || '—'}</td>
+                <td>{d.zoneNom || '—'}</td>
                 <td>
                   <div style={{ display: 'flex', gap: 6 }}>
                     <button className="btn outline" onClick={() => openDepot(d)}>Stock</button>

@@ -9,10 +9,10 @@ public record DepotResponse(
         NiveauDepot niveau,
         Long provinceId,
         String provinceNom,
+        Long communeId,
+        String communeNom,
         Long zoneId,
         String zoneNom,
-        Long collineId,
-        String collineNom,
         Integer seuilAlerteMin,
         Integer capaciteMax,
         Boolean actif) {

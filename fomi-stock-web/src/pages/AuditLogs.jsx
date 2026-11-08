@@ -30,6 +30,7 @@ export default function AuditLogs() {
 
   useEffect(() => {
     setData(null)
+    setError('')
     api.get('/api/audit-logs', {
       params: {
         ...(action ? { action } : {}),
@@ -42,12 +43,17 @@ export default function AuditLogs() {
       .catch((e) => setError(errorMessage(e)))
   }, [action, entityType, page])
 
-  if (error) return <ErrorBox message={error} />
-  if (!data) return <Loading />
+  if (!data) return error ? <ErrorBox message={error} /> : <Loading />
 
   return (
     <>
-      <h1>Logs d’audit</h1>
+      <div className="page-actions">
+        <div>
+          <h2 className="section-title">Journal d’audit</h2>
+          <p className="section-sub">Historique horodaté des actions sensibles de la plateforme.</p>
+        </div>
+      </div>
+      <ErrorBox message={error} />
 
       <div className="filter-bar">
         <input

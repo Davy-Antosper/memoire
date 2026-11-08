@@ -5,12 +5,10 @@ import bi.fomi.stock.dto.DepotResponse;
 import bi.fomi.stock.dto.StockResponse;
 import bi.fomi.stock.exception.BusinessException;
 import bi.fomi.stock.exception.ResourceNotFoundException;
-import bi.fomi.stock.model.entity.Colline;
 import bi.fomi.stock.model.entity.Depot;
 import bi.fomi.stock.model.entity.Province;
 import bi.fomi.stock.model.entity.Zone;
 import bi.fomi.stock.model.enums.NiveauDepot;
-import bi.fomi.stock.repository.CollineRepository;
 import bi.fomi.stock.repository.DepotRepository;
 import bi.fomi.stock.repository.ProvinceRepository;
 import bi.fomi.stock.repository.StockRepository;
@@ -28,7 +26,6 @@ public class DepotService {
     private final DepotRepository depotRepository;
     private final ProvinceRepository provinceRepository;
     private final ZoneRepository zoneRepository;
-    private final CollineRepository collineRepository;
     private final StockRepository stockRepository;
     private final AuditLogService auditLogService;
 
@@ -90,7 +87,6 @@ public class DepotService {
         NiveauDepot niveau = req.niveau();
         Province province = null;
         Zone zone = null;
-        Colline colline = null;
 
         switch (niveau) {
             case PROVINCE -> {
@@ -107,13 +103,6 @@ public class DepotService {
                 zone = zoneRepository.findById(req.zoneId())
                         .orElseThrow(() -> new ResourceNotFoundException("Zone introuvable"));
             }
-            case COLLINE -> {
-                if (req.collineId() == null) {
-                    throw new BusinessException("Un dépôt COLLINE doit être rattaché à une colline");
-                }
-                colline = collineRepository.findById(req.collineId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Colline introuvable"));
-            }
         }
 
         depot.setCode(req.code());
@@ -121,19 +110,25 @@ public class DepotService {
         depot.setNiveau(niveau);
         depot.setProvince(province);
         depot.setZone(zone);
-        depot.setColline(colline);
         depot.setSeuilAlerteMin(req.seuilAlerteMin() != null ? req.seuilAlerteMin() : 100);
         depot.setCapaciteMax(req.capaciteMax());
     }
 
     private DepotResponse toResponse(Depot d) {
+        Province province = d.getProvince();
+        if (province == null && d.getZone() != null && d.getZone().getCommune() != null) {
+            province = d.getZone().getCommune().getProvince();
+        }
+        Long communeId = d.getZone() != null && d.getZone().getCommune() != null
+                ? d.getZone().getCommune().getId() : null;
+        String communeNom = d.getZone() != null && d.getZone().getCommune() != null
+                ? d.getZone().getCommune().getNom() : null;
         return new DepotResponse(d.getId(), d.getCode(), d.getNom(), d.getNiveau(),
-                d.getProvince() != null ? d.getProvince().getId() : null,
-                d.getProvince() != null ? d.getProvince().getNom() : null,
+                province != null ? province.getId() : null,
+                province != null ? province.getNom() : null,
+                communeId, communeNom,
                 d.getZone() != null ? d.getZone().getId() : null,
                 d.getZone() != null ? d.getZone().getNom() : null,
-                d.getColline() != null ? d.getColline().getId() : null,
-                d.getColline() != null ? d.getColline().getNom() : null,
                 d.getSeuilAlerteMin(), d.getCapaciteMax(), d.getActif());
     }
 }

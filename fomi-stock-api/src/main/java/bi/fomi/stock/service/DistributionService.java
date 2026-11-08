@@ -122,10 +122,6 @@ public class DistributionService {
     }
 
     private boolean dansZone(Depot depot, Long zoneId) {
-        if (depot.getZone() != null && zoneId.equals(depot.getZone().getId())) {
-            return true;
-        }
-        return depot.getColline() != null && depot.getColline().getZone() != null
-                && zoneId.equals(depot.getColline().getZone().getId());
+        return depot.getZone() != null && zoneId.equals(depot.getZone().getId());
     }
 }

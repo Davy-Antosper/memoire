@@ -1,12 +1,15 @@
 package bi.fomi.stock.controller;
 
 import bi.fomi.stock.dto.CollineResponse;
+import bi.fomi.stock.dto.CommuneResponse;
 import bi.fomi.stock.dto.ProvinceResponse;
 import bi.fomi.stock.dto.ZoneResponse;
 import bi.fomi.stock.model.entity.Colline;
+import bi.fomi.stock.model.entity.Commune;
 import bi.fomi.stock.model.entity.Province;
 import bi.fomi.stock.model.entity.Zone;
 import bi.fomi.stock.repository.CollineRepository;
+import bi.fomi.stock.repository.CommuneRepository;
 import bi.fomi.stock.repository.ProvinceRepository;
 import bi.fomi.stock.repository.ZoneRepository;
 import lombok.RequiredArgsConstructor;
@@ -25,12 +28,23 @@ import java.util.List;
 public class GeoController {
 
     private final ProvinceRepository provinceRepository;
+    private final CommuneRepository communeRepository;
     private final ZoneRepository zoneRepository;
     private final CollineRepository collineRepository;
 
     @GetMapping("/provinces")
     public List<ProvinceResponse> provinces() {
         return provinceRepository.findAll().stream().map(GeoController::toProvince).toList();
+    }
+
+    @GetMapping("/communes")
+    public List<CommuneResponse> communes() {
+        return communeRepository.findAll().stream().map(GeoController::toCommune).toList();
+    }
+
+    @GetMapping("/provinces/{id}/communes")
+    public List<CommuneResponse> communesOf(@PathVariable Long id) {
+        return communeRepository.findByProvinceId(id).stream().map(GeoController::toCommune).toList();
     }
 
     @GetMapping("/zones")
@@ -40,7 +54,12 @@ public class GeoController {
 
     @GetMapping("/provinces/{id}/zones")
     public List<ZoneResponse> zonesOf(@PathVariable Long id) {
-        return zoneRepository.findByProvinceId(id).stream().map(GeoController::toZone).toList();
+        return zoneRepository.findByCommuneProvinceId(id).stream().map(GeoController::toZone).toList();
+    }
+
+    @GetMapping("/communes/{id}/zones")
+    public List<ZoneResponse> zonesOfCommune(@PathVariable Long id) {
+        return zoneRepository.findByCommuneId(id).stream().map(GeoController::toZone).toList();
     }
 
     @GetMapping("/collines")
@@ -57,9 +76,17 @@ public class GeoController {
         return new ProvinceResponse(p.getId(), p.getCode(), p.getNom());
     }
 
+    private static CommuneResponse toCommune(Commune c) {
+        return new CommuneResponse(c.getId(), c.getCode(), c.getNom(),
+                c.getProvince().getId(), c.getProvince().getNom());
+    }
+
     private static ZoneResponse toZone(Zone z) {
+        Commune commune = z.getCommune();
+        Province province = commune.getProvince();
         return new ZoneResponse(z.getId(), z.getCode(), z.getNom(),
-                z.getProvince().getId(), z.getProvince().getNom());
+                commune.getId(), commune.getNom(),
+                province.getId(), province.getNom());
     }
 
     private static CollineResponse toColline(Colline c) {

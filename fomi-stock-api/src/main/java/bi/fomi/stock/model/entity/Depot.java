@@ -40,10 +40,6 @@ public class Depot {
     @JoinColumn(name = "zone_id")
     private Zone zone;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "colline_id")
-    private Colline colline;
-
     @Column(name = "seuil_alerte_min", nullable = false)
     @Builder.Default
     private Integer seuilAlerteMin = 100;

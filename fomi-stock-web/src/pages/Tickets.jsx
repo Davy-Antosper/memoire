@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api, downloadCsv, errorMessage } from '../api/client'
 import { Loading, ErrorBox, SuccessBox, Badge, Empty, Field, useForm, Pagination } from '../components/ui'
 import { useAuth } from '../auth/AuthContext'
+import { DownloadIcon, PlusIcon } from '../components/icons'
 
 const STATUT_TONES = {
   EN_ATTENTE_DE_VALIDATION: 'amber',
@@ -25,6 +26,7 @@ export default function Tickets() {
   const [depots, setDepots] = useState([])
   const [engrais, setEngrais] = useState([])
   const [statut, setStatut] = useState('')
+  const [saison, setSaison] = useState('')
   const [page, setPage] = useState(0)
   const [error, setError] = useState('')
   const [selected, setSelected] = useState(null)
@@ -43,7 +45,9 @@ export default function Tickets() {
     quantiteCommandee: null,
     montantPaye: null,
     datePaiement: '',
-    depotRetraitId: null
+    depotRetraitId: null,
+    saison: '',
+    superficieHa: null
   })
 
   useEffect(() => {
@@ -54,10 +58,20 @@ export default function Tickets() {
 
   useEffect(() => {
     setData(null)
-    api.get('/api/tickets', { params: { ...(statut ? { statut } : {}), page, size: 50 } })
+    api.get('/api/tickets', { params: ticketParams() })
       .then((r) => setData(r.data))
       .catch((e) => setError(errorMessage(e)))
-  }, [statut, page])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statut, saison, page])
+
+  function ticketParams() {
+    return {
+      ...(statut ? { statut } : {}),
+      ...(saison.trim() ? { saison: saison.trim() } : {}),
+      page,
+      size: 50
+    }
+  }
 
   function searchAgriculteur() {
     if (!telephone.trim()) return
@@ -76,13 +90,21 @@ export default function Tickets() {
 
   function startCreate() {
     setEditing(null)
+    setError('')
+    setMsg('')
     reset()
     setShowForm(true)
   }
 
+  function closeForm() {
+    setShowForm(false)
+    setEditing(null)
+  }
+
   function startEdit(t) {
     setEditing(t)
-    setForm({})
+    setError('')
+    setMsg('')
     setAll({
       numeroTicket: t.numeroTicket,
       agriculteurId: t.agriculteurId,
@@ -90,7 +112,9 @@ export default function Tickets() {
       quantiteCommandee: t.quantiteCommandee,
       montantPaye: t.montantPaye,
       datePaiement: t.datePaiement,
-      depotRetraitId: depots.find((d) => d.code === t.depotRetraitCode)?.id || null
+      depotRetraitId: depots.find((d) => d.code === t.depotRetraitCode)?.id || null,
+      saison: t.saison || '',
+      superficieHa: t.superficieHa ?? null
     })
     setShowForm(true)
   }
@@ -107,7 +131,11 @@ export default function Tickets() {
         quantiteCommandee: Number(form.quantiteCommandee),
         montantPaye: Number(form.montantPaye),
         datePaiement: form.datePaiement,
-        depotRetraitId: Number(form.depotRetraitId)
+        depotRetraitId: Number(form.depotRetraitId),
+        saison: (form.saison || '').trim(),
+        superficieHa: form.superficieHa === null || form.superficieHa === ''
+          ? null
+          : Number(form.superficieHa)
       }
       const { data: saved } = editing
         ? await api.put(`/api/tickets/${editing.id}`, payload)
@@ -115,7 +143,7 @@ export default function Tickets() {
       setMsg(`Ticket ${saved.numeroTicket} ${editing ? 'modifié' : 'créé'}`)
       setShowForm(false)
       setEditing(null)
-      api.get('/api/tickets', { params: { ...(statut ? { statut } : {}), page, size: 50 } })
+      api.get('/api/tickets', { params: ticketParams() })
         .then((r) => setData(r.data))
         .catch(() => {})
     } catch (err) {
@@ -124,7 +152,7 @@ export default function Tickets() {
   }
 
   function refresh() {
-    api.get('/api/tickets', { params: { ...(statut ? { statut } : {}), page, size: 50 } })
+    api.get('/api/tickets', { params: ticketParams() })
       .then((r) => setData(r.data))
       .catch((e) => setError(errorMessage(e)))
   }
@@ -158,16 +186,20 @@ export default function Tickets() {
     }
   }
 
-  if (error) return <ErrorBox message={error} />
-  if (!data) return <Loading />
+  if (!data) return error ? <ErrorBox message={error} /> : <Loading />
 
   return (
     <>
       <SuccessBox message={msg} />
-      <div className="row">
-        <h1 style={{ margin: 0 }}>Tickets</h1>
+      <ErrorBox message={error} />
+      <div className="row page-actions">
+        <div>
+          <h2 className="section-title">Tickets agricoles</h2>
+          <p className="section-sub">Suivi des commandes, validations et retraits d’engrais.</p>
+        </div>
         {user.role !== 'SUPERVISEUR' && (
-          <button className="btn" onClick={startCreate}>
+          <button className="btn" onClick={() => (showForm ? closeForm() : startCreate())}>
+            <PlusIcon size={17} />
             {showForm ? 'Annuler' : 'Nouveau ticket'}
           </button>
         )}
@@ -175,10 +207,14 @@ export default function Tickets() {
           <button
             className="btn outline"
             onClick={() =>
-              downloadCsv('/api/export/tickets.csv', { statut: statut || undefined }, 'tickets.csv')
-                .catch((e) => setError(errorMessage(e)))
+              downloadCsv(
+                '/api/export/tickets.csv',
+                { statut: statut || undefined, saison: saison.trim() || undefined },
+                'tickets.csv'
+              ).catch((e) => setError(errorMessage(e)))
             }
           >
+            <DownloadIcon size={17} />
             Exporter CSV
           </button>
         )}
@@ -189,6 +225,12 @@ export default function Tickets() {
           <option value="">Tous les statuts</option>
           {Object.keys(STATUT_TONES).map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
+        <input
+          value={saison}
+          onChange={(e) => { setSaison(e.target.value); setPage(0) }}
+          placeholder="Filtrer par saison (ex : 2026A)"
+          style={{ maxWidth: 240 }}
+        />
         <span className="muted">{data.totalElements} ticket(s)</span>
       </div>
 
@@ -199,7 +241,7 @@ export default function Tickets() {
             <Field label="Numéro du ticket">
               <input value={form.numeroTicket} onChange={set('numeroTicket')} placeholder="TKT-2026-0001" required disabled={!!editing} />
             </Field>
-            <Field label="Quantité (sacs)">
+            <Field label="Quantité commandée (kg)">
               <input type="number" min="1" value={form.quantiteCommandee} onChange={set('quantiteCommandee')} required />
             </Field>
             <Field label="Montant payé (BIF)">
@@ -219,6 +261,12 @@ export default function Tickets() {
                 <option value="">—</option>
                 {depots.filter((d) => d.actif).map((d) => <option key={d.id} value={d.id}>{d.nom} ({d.code})</option>)}
               </select>
+            </Field>
+            <Field label="Saison">
+              <input value={form.saison || ''} onChange={set('saison')} placeholder="2026A" required />
+            </Field>
+            <Field label="Superficie (ha, optionnel)">
+              <input type="number" min="0" step="0.01" value={form.superficieHa ?? ''} onChange={set('superficieHa')} placeholder="Héritée de l’agriculteur si vide" />
             </Field>
             {!editing && (
               <>
@@ -240,6 +288,7 @@ export default function Tickets() {
             )}
           </div>
           <button className="btn">{editing ? 'Enregistrer les modifications' : 'Créer le ticket'}</button>
+          <button type="button" className="btn outline" onClick={closeForm}>Annuler</button>
         </form>
       )}
 
@@ -286,8 +335,9 @@ export default function Tickets() {
         <div className="card">
           <h2>Ticket {selected.numeroTicket} — {selected.agriculteurNomComplet}</h2>
           <p className="muted">
-            Engrais {selected.engraisTypeCode} · Commandé {selected.quantiteCommandee} sacs · Servi {selected.quantiteServie} ·
-            Restant {selected.quantiteRestante} · Payé {selected.montantPaye.toLocaleString('fr-FR')} BIF · Retrait {selected.depotRetraitCode}
+            Engrais {selected.engraisTypeCode} · Commandé {selected.quantiteCommandee} kg · Servi {selected.quantiteServie} ·
+            Restant {selected.quantiteRestante} · Payé {Number(selected.montantPaye || 0).toLocaleString('fr-FR')} BIF ·
+            Retrait {selected.depotRetraitCode} · Saison {selected.saison || '—'}
           </p>
           {!distributions ? (
             <Loading />
