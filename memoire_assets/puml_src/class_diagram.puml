@@ -120,6 +120,16 @@ class SeuilAlerte {
   + id : Long
   + seuilMin : Integer
 }
+class Reclamation {
+  + id : Long
+  + motif : String
+  + description : String
+  + quantiteManquante : Integer
+  + statut : String
+  + resolution : String
+  + dateCreation : LocalDateTime
+  + dateResolution : LocalDateTime
+}
 class AuditLog {
   + id : Long
   + action : String
@@ -149,6 +159,7 @@ Utilisateur "1" -left- "0..*" Mouvement : execute
 Mouvement "1" -right- "0..1" Distribution : reference
 
 Depot "1" -down- "0..*" SeuilAlerte : configure
+Ticket "1" -right- "0..*" Reclamation : donne lieu
 EngraisType "1" -right- "0..*" Alerte : concerne
 Utilisateur "1" -right- "0..*" AuditLog : trace
 @enduml

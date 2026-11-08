@@ -194,6 +194,21 @@ entity "seuil_alerte" as SEUIL {
   <<UNIQUE (depot_id, engrais_type_id)>>
 }
 
+' ===== Réclamations =====
+entity "reclamation" as RECLAM {
+  * id : BIGSERIAL <<PK>>
+  --
+  ticket_id : BIGINT <<FK>>
+  motif : VARCHAR(200)
+  description : VARCHAR(1000)
+  quantite_manquante : INTEGER
+  statut : VARCHAR(20)
+  resolution : VARCHAR(1000)
+  date_creation : TIMESTAMP
+  date_resolution : TIMESTAMP
+  est_demo : BOOLEAN
+}
+
 ' ===== Relations =====
 PROV ||--o{ COMMUNE
 COMMUNE ||--o{ ZONE
@@ -225,6 +240,7 @@ AGR ||--o{ TICKET
 
 TICKET ||--o{ DIST
 TICKET ||--o{ MVT
+TICKET ||--o{ RECLAM
 
 USER ||--o{ MVT
 USER ||--o{ DIST

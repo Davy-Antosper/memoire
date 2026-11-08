@@ -9,7 +9,13 @@ skinparam ActorBorderColor #455A64
 skinparam UsecaseBorderColor #90A4AE
 skinparam UsecaseBackgroundColor #FFFFFF
 skinparam PackageBorderColor #B0BEC5
-skinparam rectangleBorderColor #90A4AE
+skinparam RectangleBorderColor #90A4AE
+skinparam nodesep 18
+skinparam ranksep 28
+
+' La disposition horizontale (left to right) et le regroupement par domaine
+' évitent un diagramme très large, illisible une fois réduit à 15 cm de page.
+left to right direction
 
 ' ---- Acteurs principaux (gauche) ----
 actor "Agent\ncolline" as ACO
@@ -23,25 +29,40 @@ actor "Agriculteur" as AGR
 
 rectangle "Système FOMI-Stock" {
 
-  usecase "Se connecter" as UC_AUTH
+  package "Accès" {
+    usecase "Se connecter" as UC_AUTH
+  }
 
-  usecase "Créer un ticket" as UC_CREER
-  usecase "Valider un ticket" as UC_VALIDER
-  usecase "Rejeter un ticket" as UC_REJETER
-  usecase "Consulter un ticket" as UC_CONSULT
+  package "Tickets" {
+    usecase "Créer un ticket" as UC_CREER
+    usecase "Valider un ticket" as UC_VALIDER
+    usecase "Rejeter un ticket" as UC_REJETER
+    usecase "Consulter un ticket" as UC_CONSULT
+  }
 
-  usecase "Réceptionner un lot" as UC_RECEP
-  usecase "Transférer du stock" as UC_TRANSF
-  usecase "Consulter le stock" as UC_STOCK
+  package "Stocks et lots" {
+    usecase "Réceptionner un lot" as UC_RECEP
+    usecase "Transférer du stock" as UC_TRANSF
+    usecase "Distribuer en FIFO" as UC_DISTRIB
+    usecase "Consulter le stock" as UC_STOCK
+  }
 
-  usecase "Distribuer en FIFO" as UC_DISTRIB
+  package "Réclamations" {
+    usecase "Enregistrer une réclamation" as UC_RECLAM
+    usecase "Instruire une réclamation" as UC_INSTRUIRE
+  }
 
-  usecase "Traiter les alertes" as UC_ALERTE
-  usecase "Consulter les statistiques" as UC_STATS
-  usecase "Gérer les utilisateurs" as UC_USERS
-  usecase "Gérer la géographie\n(province, commune, zone, colline)" as UC_GEO
-  usecase "Gérer les dépôts\n(province, zone)" as UC_DEPOT
-  usecase "Consulter l'audit" as UC_AUDIT
+  package "Supervision" {
+    usecase "Traiter les alertes" as UC_ALERTE
+    usecase "Consulter les statistiques" as UC_STATS
+    usecase "Consulter l'audit" as UC_AUDIT
+  }
+
+  package "Administration" {
+    usecase "Gérer les utilisateurs" as UC_USERS
+    usecase "Gérer la géographie\n(province, commune, zone, colline)" as UC_GEO
+    usecase "Gérer les dépôts\n(province, zone)" as UC_DEPOT
+  }
 
   ' relations entre cas
   UC_CREER ..> UC_AUTH : <<include>>
@@ -55,11 +76,19 @@ ACO --> UC_CREER
 ACO --> UC_DISTRIB
 ACO --> UC_STOCK
 ACO --> UC_ALERTE
+ACO --> UC_RECLAM
 
+AZO --> UC_CREER
 AZO --> UC_VALIDER
 AZO --> UC_REJETER
 AZO --> UC_DISTRIB
 AZO --> UC_ALERTE
+AZO --> UC_RECLAM
+
+SUP --> UC_VALIDER
+SUP --> UC_INSTRUIRE
+SUP --> UC_STATS
+SUP --> UC_AUDIT
 
 ALO --> UC_RECEP
 ALO --> UC_TRANSF
@@ -67,11 +96,9 @@ ALO --> UC_STOCK
 
 AGR --> UC_CONSULT
 
-SUP --> UC_STATS
-SUP --> UC_AUDIT
-
 ADM --> UC_USERS
 ADM --> UC_GEO
 ADM --> UC_DEPOT
 ADM --> UC_STATS
+ADM --> UC_INSTRUIRE
 @enduml
