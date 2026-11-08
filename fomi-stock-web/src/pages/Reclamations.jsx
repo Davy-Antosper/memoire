@@ -40,6 +40,8 @@ export default function Reclamations() {
   const [recherche, setRecherche] = useState('')
   const [cloture, setCloture] = useState(null)
   const [resolution, setResolution] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [busyId, setBusyId] = useState(null)
   const [form, set, reset] = useForm({
     ticketId: null,
     motif: MOTIFS[0],
@@ -77,6 +79,7 @@ export default function Reclamations() {
     e.preventDefault()
     setError('')
     setMsg('')
+    setSaving(true)
     try {
       await api.post('/api/reclamations', {
         ticketId: Number(form.ticketId),
@@ -90,12 +93,15 @@ export default function Reclamations() {
       load(statut)
     } catch (err) {
       setError(errorMessage(err))
+    } finally {
+      setSaving(false)
     }
   }
 
   async function changerStatut(id, nouveau, texte) {
     setError('')
     setMsg('')
+    setBusyId(id)
     try {
       await api.patch(`/api/reclamations/${id}/statut`, {
         statut: nouveau,
@@ -107,6 +113,8 @@ export default function Reclamations() {
       load(statut)
     } catch (err) {
       setError(errorMessage(err))
+    } finally {
+      setBusyId(null)
     }
   }
 
@@ -202,7 +210,7 @@ export default function Reclamations() {
               />
             </Field>
           </div>
-          <button className="btn">Enregistrer la réclamation</button>
+          <button className="btn" disabled={saving}>{saving ? 'Enregistrement...' : 'Enregistrer la réclamation'}</button>
           <button type="button" className="btn outline" onClick={() => setShowForm(false)}>Annuler</button>
         </form>
       )}
@@ -231,10 +239,10 @@ export default function Reclamations() {
           </Field>
           <button
             className="btn"
-            disabled={!resolution.trim()}
+            disabled={!resolution.trim() || busyId !== null}
             onClick={() => changerStatut(cloture.item.id, cloture.cible, resolution)}
           >
-            Confirmer
+            {busyId === cloture.item.id ? 'Enregistrement...' : 'Confirmer'}
           </button>
           <button
             className="btn outline"
@@ -273,21 +281,24 @@ export default function Reclamations() {
                     {canInstruire && r.statut === 'OUVERTE' && (
                       <button
                         className="btn outline"
+                        disabled={busyId !== null}
                         onClick={() => changerStatut(r.id, 'EN_INSTRUCTION')}
                       >
-                        Prendre en charge
+                        {busyId === r.id ? 'En cours...' : 'Prendre en charge'}
                       </button>
                     )}
                     {canInstruire && (r.statut === 'OUVERTE' || r.statut === 'EN_INSTRUCTION') && (
                       <>
                         <button
                           className="btn"
+                          disabled={busyId !== null}
                           onClick={() => { setCloture({ item: r, cible: 'RESOLUE' }); setResolution(''); setError(''); setMsg('') }}
                         >
                           Résoudre
                         </button>
                         <button
                           className="btn danger"
+                          disabled={busyId !== null}
                           onClick={() => { setCloture({ item: r, cible: 'REJETEE' }); setResolution(''); setError(''); setMsg('') }}
                         >
                           Rejeter

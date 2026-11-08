@@ -38,6 +38,8 @@ export default function Tickets() {
   const [msg, setMsg] = useState('')
   const [rejeterTicket, setRejeterTicket] = useState(null)
   const [motif, setMotif] = useState('')
+  // Identifie l'action en cours pour n'autoriser qu'un seul clic par opération.
+  const [busyId, setBusyId] = useState(null)
   const [form, set, setAll, reset] = useForm({
     numeroTicket: '',
     agriculteurId: null,
@@ -160,22 +162,30 @@ export default function Tickets() {
   async function activer(t) {
     setMsg('')
     setError('')
+    setBusyId(`activer-${t.id}`)
     try {
       const { data: saved } = await api.patch(`/api/tickets/${t.id}/activer`)
       setMsg(`Ticket ${saved.numeroTicket} activé`)
       refresh()
     } catch (err) {
       setError(errorMessage(err))
+    } finally {
+      setBusyId(null)
     }
   }
 
   async function rejeter() {
     if (!rejeterTicket) return
+    if (!motif.trim()) {
+      setError('Le motif de rejet est obligatoire : l’agriculteur doit connaître la raison du refus.')
+      return
+    }
     setMsg('')
     setError('')
+    setBusyId(`rejeter-${rejeterTicket.id}`)
     try {
       const { data: saved } = await api.patch(`/api/tickets/${rejeterTicket.id}/rejeter`, {
-        motif: motif || undefined
+        motif: motif.trim()
       })
       setMsg(`Ticket ${saved.numeroTicket} rejeté`)
       setRejeterTicket(null)
@@ -183,6 +193,8 @@ export default function Tickets() {
       refresh()
     } catch (err) {
       setError(errorMessage(err))
+    } finally {
+      setBusyId(null)
     }
   }
 
@@ -304,21 +316,32 @@ export default function Tickets() {
             {data.content.length === 0 && <tr><td colSpan={7}><Empty /></td></tr>}
             {data.content.map((t) => (
               <tr key={t.id}>
-                <td><strong>{t.numeroTicket}</strong></td>
+                <td>
+                  <strong>{t.numeroTicket}</strong>
+                  {t.motifRejet && (
+                    <div className="muted" style={{ fontSize: '0.85em' }}>Rejet : {t.motifRejet}</div>
+                  )}
+                </td>
                 <td>{t.agriculteurNomComplet}</td>
                 <td>{t.engraisTypeCode}</td>
                 <td className="num">{t.quantiteCommandee}</td>
                 <td className="num">{t.quantiteServie}</td>
                 <td><Badge tone={STATUT_TONES[t.statut]}>{t.statut}</Badge></td>
                 <td>
-                  <button className="btn outline" onClick={() => openTicket(t)}>Détails</button>{' '}
+                  <button className="btn outline" disabled={busyId !== null} onClick={() => openTicket(t)}>Détails</button>{' '}
                   {canEdit && t.quantiteServie === 0 && (
-                    <button className="btn outline" onClick={() => startEdit(t)}>Modifier</button>
+                    <button className="btn outline" disabled={busyId !== null} onClick={() => startEdit(t)}>Modifier</button>
                   )}{' '}
                   {canValidate && t.statut === 'EN_ATTENTE_DE_VALIDATION' && (
                     <>
-                      <button className="btn outline" onClick={() => activer(t)}>Activer</button>{' '}
-                      <button className="btn danger" onClick={() => { setRejeterTicket(t); setMotif('') }}>
+                      <button
+                        className="btn outline"
+                        disabled={busyId !== null}
+                        onClick={() => activer(t)}
+                      >
+                        {busyId === `activer-${t.id}` ? 'Activation...' : 'Activer'}
+                      </button>{' '}
+                      <button className="btn danger" disabled={busyId !== null} onClick={() => { setRejeterTicket(t); setMotif('') }}>
                         Rejeter
                       </button>
                     </>
@@ -339,6 +362,9 @@ export default function Tickets() {
             Restant {selected.quantiteRestante} sacs · Payé {Number(selected.montantPaye || 0).toLocaleString('fr-FR')} BIF ·
             Retrait {selected.depotRetraitCode} · Saison {selected.saison || '—'}
           </p>
+          {selected.motifRejet && (
+            <ErrorBox message={`Motif du rejet : ${selected.motifRejet}`} />
+          )}
           {!distributions ? (
             <Loading />
           ) : distributions.length === 0 ? (
@@ -365,16 +391,21 @@ export default function Tickets() {
       {rejeterTicket && (
         <div className="card" style={{ borderColor: 'var(--red)' }}>
           <h2>Rejeter le ticket {rejeterTicket.numeroTicket}</h2>
-          <Field label="Motif du rejet (optionnel)">
+          <Field label="Motif du rejet (obligatoire)">
             <textarea
               value={motif}
               onChange={(e) => setMotif(e.target.value)}
               placeholder="Ex : paiement non confirmé…"
               rows={3}
+              required
+              maxLength={500}
+              autoFocus
             />
           </Field>
           <div className="row">
-            <button className="btn danger" onClick={rejeter}>Confirmer le rejet</button>
+            <button className="btn danger" onClick={rejeter} disabled={!motif.trim() || busyId !== null}>
+              {busyId === `rejeter-${rejeterTicket.id}` ? 'Rejet...' : 'Confirmer le rejet'}
+            </button>
             <button className="btn outline" onClick={() => { setRejeterTicket(null); setMotif('') }}>Annuler</button>
           </div>
         </div>

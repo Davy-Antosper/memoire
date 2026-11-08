@@ -9,9 +9,9 @@ export default function Distributions() {
   const [error, setError] = useState('')
   const [msg, setMsg] = useState('')
   const [distributions, setDistributions] = useState(null)
-  const [ticketView, setTicketView] = useState('')
   const [ticketNumero, setTicketNumero] = useState('')
   const [selectedTicket, setSelectedTicket] = useState(null)
+  const [saving, setSaving] = useState(false)
   const [form, set, setAll] = useForm({ ticketId: null, depotId: null, lotId: null, quantite: null, commentaire: '' })
 
   useEffect(() => {
@@ -24,13 +24,17 @@ export default function Distributions() {
 
   function selectTicket(q) {
     setTicketNumero(q)
-    const t = tickets.find((x) => x.numeroTicket === q.trim())
+    // La recherche est insensible à la casse : l'agent peut saisir le numéro
+    // imprimé sur le ticket sans se soucier des majuscules.
+    const t = tickets.find((x) => x.numeroTicket?.toLowerCase() === q.trim().toLowerCase())
     if (t) {
       setAll({ ticketId: t.id })
       setSelectedTicket(t)
+      loadTicket(t.id)
     } else {
       setAll({ ticketId: null })
       setSelectedTicket(null)
+      setDistributions(null)
     }
   }
 
@@ -38,6 +42,7 @@ export default function Distributions() {
     e.preventDefault()
     setMsg('')
     setError('')
+    setSaving(true)
     try {
       const payload = {
         ticketId: Number(form.ticketId),
@@ -49,13 +54,19 @@ export default function Distributions() {
       const { data } = await api.post('/api/distributions', payload)
       setMsg(`${data.length} distribution(s) enregistrée(s)`)
       if (form.ticketId) loadTicket(form.ticketId)
+      // Le restant du ticket et le stock changent : on rafraîchit la liste
+      // pour que le prochain retrait parte de chiffres à jour.
+      api.get('/api/tickets', { params: { page: 0, size: 200 } })
+        .then((r) => setTickets(r.data.content))
+        .catch(() => {})
     } catch (err) {
       setError(errorMessage(err))
+    } finally {
+      setSaving(false)
     }
   }
 
   function loadTicket(id) {
-    setTicketView(String(id))
     setDistributions(null)
     api.get(`/api/distributions/ticket/${id}`)
       .then((r) => setDistributions(r.data))
@@ -101,18 +112,18 @@ export default function Distributions() {
             <input value={form.commentaire} onChange={set('commentaire')} />
           </Field>
         </div>
-        <button className="btn">Distribuer</button>
+        <button className="btn" disabled={saving}>{saving ? 'Enregistrement...' : 'Distribuer'}</button>
       </form>
 
       <div className="card">
         <h2>Distributions d'un ticket</h2>
-        <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-          <input type="number" value={ticketView} onChange={(e) => setTicketView(e.target.value)} placeholder="ID du ticket" style={{ maxWidth: 160 }} />
-          <button className="btn outline" onClick={() => loadTicket(ticketView)}>Afficher</button>
-        </div>
-        {distributions &&
+        <p className="section-sub">
+          Sélectionnez un ticket dans le formulaire ci-dessus pour afficher l'historique de ses retraits.
+        </p>
+        {!selectedTicket && <Empty label="Aucun ticket sélectionné" />}
+        {selectedTicket && distributions &&
           (distributions.length === 0 ? (
-            <Empty label="Aucune distribution pour ce ticket" />
+            <Empty label={`Aucune distribution pour le ticket ${selectedTicket.numeroTicket}`} />
           ) : (
             <table>
               <thead>

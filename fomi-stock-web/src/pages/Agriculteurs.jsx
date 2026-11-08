@@ -15,6 +15,8 @@ export default function Agriculteurs() {
   const [notifyFor, setNotifyFor] = useState(null)
   const [notifyForm, setNotifyForm] = useState({ sujet: '', message: '' })
   const [notifyError, setNotifyError] = useState('')
+  const [notifyBusy, setNotifyBusy] = useState(false)
+  const [creating, setCreating] = useState(false)
   const [form, set, setAll, reset] = useForm({
     numeroIdentite: '',
     nom: '',
@@ -77,6 +79,7 @@ export default function Agriculteurs() {
   async function notify(e) {
     e.preventDefault()
     setNotifyError('')
+    setNotifyBusy(true)
     try {
       await api.post(`/api/agriculteurs/${notifyFor.id}/notifier`, notifyForm)
       setMsg(`Email envoyé à ${notifyFor.email}`)
@@ -84,6 +87,8 @@ export default function Agriculteurs() {
       setNotifyForm({ sujet: '', message: '' })
     } catch (err) {
       setNotifyError(errorMessage(err))
+    } finally {
+      setNotifyBusy(false)
     }
   }
 
@@ -91,6 +96,7 @@ export default function Agriculteurs() {
     e.preventDefault()
     setMsg('')
     setError('')
+    setCreating(true)
     try {
       const payload = {
         numeroIdentite: form.numeroIdentite,
@@ -113,6 +119,8 @@ export default function Agriculteurs() {
         .catch((e) => setError(errorMessage(e)))
     } catch (err) {
       setError(errorMessage(err))
+    } finally {
+      setCreating(false)
     }
   }
 
@@ -153,7 +161,7 @@ export default function Agriculteurs() {
             </Field>
           </div>
           <div className="row">
-            <button className="btn">Envoyer l'email</button>
+            <button className="btn" disabled={notifyBusy}>{notifyBusy ? 'Envoi...' : "Envoyer l'email"}</button>
             <button type="button" className="btn outline" onClick={() => setNotifyFor(null)}>Annuler</button>
           </div>
         </form>
@@ -201,7 +209,7 @@ export default function Agriculteurs() {
               <span>Coopérative</span>
             </label>
           </div>
-          <button className="btn">Créer</button>
+          <button className="btn" disabled={creating}>{creating ? 'Création...' : 'Créer'}</button>
           <button type="button" className="btn outline" onClick={() => setShowCreate(false)}>Annuler</button>
         </form>
       )}

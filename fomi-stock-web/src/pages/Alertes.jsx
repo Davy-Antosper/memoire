@@ -11,6 +11,7 @@ export default function Alertes() {
   const [list, setList] = useState(null)
   const [error, setError] = useState('')
   const [nonTraitees, setNonTraitees] = useState(true)
+  const [busyId, setBusyId] = useState(null)
 
   function load(onlyUntreated) {
     setList(null)
@@ -25,10 +26,17 @@ export default function Alertes() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  function traiter(id) {
-    api.patch(`/api/alertes/${id}/traiter`)
-      .then(() => load(nonTraitees))
-      .catch((e) => setError(errorMessage(e)))
+  async function traiter(id) {
+    setError('')
+    setBusyId(id)
+    try {
+      await api.patch(`/api/alertes/${id}/traiter`)
+      await load(nonTraitees)
+    } catch (e) {
+      setError(errorMessage(e))
+    } finally {
+      setBusyId(null)
+    }
   }
 
   if (!list) return error ? <ErrorBox message={error} /> : <Loading />
@@ -73,7 +81,9 @@ export default function Alertes() {
                     {a.traitee ? (
                       <Badge tone="green">Traitée</Badge>
                     ) : canTraiter ? (
-                      <button className="btn outline" onClick={() => traiter(a.id)}>Traiter</button>
+                      <button className="btn outline" disabled={busyId !== null} onClick={() => traiter(a.id)}>
+                        {busyId === a.id ? 'Traitement...' : 'Traiter'}
+                      </button>
                     ) : (
                       <Badge tone="amber">Non traitée</Badge>
                     )}
