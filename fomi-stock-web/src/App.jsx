@@ -10,6 +10,7 @@ import Distributions from './pages/Distributions'
 import Agriculteurs from './pages/Agriculteurs'
 import Mouvements from './pages/Mouvements'
 import Alertes from './pages/Alertes'
+import Reclamations from './pages/Reclamations'
 import Utilisateurs from './pages/Utilisateurs'
 import Lots from './pages/Lots'
 import Suivi from './pages/Suivi'
@@ -60,6 +61,7 @@ function Shell() {
         <Route path="/agriculteurs" element={<RequireRole roles={['ADMIN', 'AGENT_ZONE', 'AGENT_COLLINE']}><Agriculteurs /></RequireRole>} />
         <Route path="/mouvements" element={<RequireRole roles={['ADMIN', 'AGENT_ZONE', 'AGENT_LOGISTIQUE']}><Mouvements /></RequireRole>} />
         <Route path="/alertes" element={<RequireRole roles={['ADMIN', 'AGENT_ZONE', 'AGENT_COLLINE', 'SUPERVISEUR']}><Alertes /></RequireRole>} />
+        <Route path="/reclamations" element={<RequireRole roles={['ADMIN', 'AGENT_ZONE', 'AGENT_COLLINE', 'SUPERVISEUR']}><Reclamations /></RequireRole>} />
         <Route path="/utilisateurs" element={<RequireRole roles={['ADMIN']}><Utilisateurs /></RequireRole>} />
         <Route path="/lots" element={<Lots />} />
         <Route path="/audit-logs" element={<RequireRole roles={['ADMIN']}><AuditLogs /></RequireRole>} />

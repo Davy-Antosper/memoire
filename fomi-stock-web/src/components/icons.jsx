@@ -203,6 +203,16 @@ export function InfoIcon(props) {
   )
 }
 
+export function ReclamationIcon(props) {
+  return (
+    <Svg {...props}>
+      <path d="M20 12a8 8 0 1 1-3.1-6.3" />
+      <path d="M21 4v4h-4" />
+      <path d="M12 8v4M12 15.5v.5" />
+    </Svg>
+  )
+}
+
 export function TrendIcon(props) {
   return (
     <Svg {...props}>

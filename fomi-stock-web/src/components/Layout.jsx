@@ -16,6 +16,7 @@ import {
   CloseIcon,
   MoonIcon,
   MovementIcon,
+  ReclamationIcon,
   SunIcon,
   TicketIcon,
   UsersIcon
@@ -38,6 +39,7 @@ const MENU = [
   { to: '/mouvements', label: 'Mouvements', icon: MovementIcon, roles: ['ADMIN', 'AGENT_ZONE', 'AGENT_LOGISTIQUE'] },
   { to: '/lots', label: 'Lots', icon: LotIcon, roles: ['ADMIN', 'AGENT_ZONE', 'AGENT_COLLINE', 'SUPERVISEUR', 'AGENT_LOGISTIQUE'] },
   { to: '/alertes', label: 'Alertes', icon: AlertIcon, roles: ['ADMIN', 'AGENT_ZONE', 'AGENT_COLLINE', 'SUPERVISEUR'] },
+  { to: '/reclamations', label: 'Réclamations', icon: ReclamationIcon, roles: ['ADMIN', 'AGENT_ZONE', 'AGENT_COLLINE', 'SUPERVISEUR'] },
   { to: '/utilisateurs', label: 'Utilisateurs', icon: UsersIcon, roles: ['ADMIN'] },
   { to: '/audit-logs', label: "Journal d'audit", icon: AuditIcon, roles: ['ADMIN'] }
 ]
