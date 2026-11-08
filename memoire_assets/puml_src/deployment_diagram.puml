@@ -3,6 +3,7 @@ title Diagramme de déploiement — Système FOMI-Stock
 skinparam shadowing false
 skinparam roundCorner 12
 skinparam DefaultFontName "Segoe UI"
+skinparam dpi 150
 skinparam ArrowColor #607D8B
 skinparam NodeBorderColor #90A4AE
 skinparam NodeBackgroundColor #F7FBFF
@@ -28,8 +29,8 @@ node "Conteneur Docker\n(eclipse-temurin 21-jre)" as DOCKER {
 
 ' ---- Données ----
 database "PostgreSQL 16" as PG {
-  artifact "Base fomi_stock\n16 tables" as SCHEMA
-  artifact "Migrations Flyway\nV1 a V12" as FLYWAY
+  artifact "Base fomi_stock\n17 tables" as SCHEMA
+  artifact "Migrations Flyway\nV1 a V13" as FLYWAY
 }
 
 ' ---- Services externes ----

@@ -4,10 +4,11 @@
 Le rapport de référence est `Rapport_stage_FOMI_canevas.docx`, restructuré
 selon le canevas du promoteur (voir l'historique dans `tools/rapport/`).
 
-Cette commande applique uniquement la passe de cohérence métier
-`update_docx_model.py` : modèle Province -> Commune -> Zone -> Colline,
-dépôts limités à PROVINCE et ZONE, et compteurs à jour (17 tables,
-13 migrations, 65 endpoints). La passe est idempotente.
+Cette commande applique deux passes idempotentes :
+`update_docx_model.py` (cohérence métier : modèle Province -> Commune -> Zone ->
+Colline, dépôts limités à PROVINCE et ZONE, compteurs à jour — 17 tables,
+13 migrations, 65 endpoints) puis `update_docx_diagrams.py` (réinjection des
+figures PlantUML régénérées, proportions conservées).
 
 Usage :
     python build_rapport.py
@@ -17,7 +18,7 @@ import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-STEPS = ["update_docx_model.py"]
+STEPS = ["update_docx_model.py", "update_docx_diagrams.py"]
 
 env = dict(os.environ)
 env.setdefault("PYTHONIOENCODING", "utf-8")

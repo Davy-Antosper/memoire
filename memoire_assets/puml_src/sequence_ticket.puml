@@ -3,6 +3,7 @@ title Création et validation d'un ticket d'engrais
 skinparam shadowing true
 skinparam roundCorner 12
 skinparam DefaultFontName "Segoe UI"
+skinparam dpi 150
 skinparam sequenceMessageAlign center
 skinparam ArrowColor #546E7A
 

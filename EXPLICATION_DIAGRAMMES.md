@@ -16,9 +16,9 @@ Toutes les informations proviennent du **code réel** de `fomi-stock-api` (entit
 |---|---|---|---|
 | 1 | [Diagramme de classes](#1-diagramme-de-classes) | `class_diagram.svg` | Structure |
 | 2 | [Entité-Relation (modèle physique)](#2-diagramme-entité-relation) | `er_diagram.svg` | Données |
-| 3 | [Séquence — Distribution FIFO](#3-séquence--distribution-fifo) | `sequence_distribution.svg` | Comportement |
+| 3 | [Circuit de distribution des engrais](#3-circuit-de-distribution-des-engrais) | `distribution_circuit.svg` | Flux métier |
 | 4 | [Séquence — Création et validation d'un ticket](#4-séquence--création-et-validation-dun-ticket) | `sequence_ticket.svg` | Comportement |
-| 5 | [Machine à états du ticket](#5-machine-à-états-du-ticket) | `ticket_state_machine.svg` | Comportement |
+| 5 | [Architecture du système](#5-architecture-du-système) | `architecture.svg` | Structure |
 | 6 | [Cas d'utilisation](#6-diagramme-de-cas-dutilisation) | `use_case_diagram.svg` | Besoins |
 | 7 | [Diagramme d'activités](#7-diagramme-dactivités) | `activity_diagram.svg` | Comportement |
 | 8 | [Diagramme de déploiement](#8-diagramme-de-déploiement) | `deployment_diagram.svg` | Infrastructure |
@@ -33,7 +33,7 @@ Toutes les informations proviennent du **code réel** de `fomi-stock-api` (entit
 
 ### Objectif
 
-Montrer les **14 entités métier** du système et leurs relations, avec leurs attributs
+Montrer les **17 entités métier** du système et leurs relations, avec leurs attributs
 principaux et leurs méthodes métier.
 
 ### Comment le lire
@@ -48,7 +48,7 @@ principaux et leurs méthodes métier.
 
 | Domaine | Entités |
 |---|---|
-| Localisation | `Province`, `Zone`, `Colline` |
+| Localisation | `Province`, `Commune`, `Zone`, `Colline` |
 | Acteurs | `Agriculteur`, `Utilisateur` |
 | Stock | `EngraisType`, `Lot`, `Depot`, `Stock`, `StockLot` |
 | Distribution | `Ticket`, `Mouvement`, `Distribution` |
@@ -56,8 +56,12 @@ principaux et leurs méthodes métier.
 
 **Relations clés** :
 
-- `Province 1 — 0..* Zone`, `Zone 1 — 0..* Colline` : découpage administratif du Burundi.
-- `Colline 1 — 0..* Agriculteur` : chaque agriculteur est rattaché à une colline.
+- `Province 1 — 0..* Commune`, `Commune 1 — 0..* Zone`, `Zone 1 — 0..* Colline` : découpage
+  administratif du Burundi (`Province → Commune → Zone → Colline`).
+- `Colline 1 — 0..* Agriculteur` : chaque agriculteur est rattaché à une colline (lieu de
+  résidence).
+- `Province 0..1 — 0..* Depot` et `Zone 0..1 — 0..* Depot` : un dépôt est soit provincial,
+  soit de zone — la colline n'est jamais un niveau de stockage.
 - `Agriculteur 1 — 0..* Ticket` : un agriculteur demande des tickets.
 - `Ticket 1 — 0..* Distribution` : un ticket peut être servi en plusieurs fois (distributions partielles).
 - `Lot 1 — 0..* Distribution` : chaque distribution sort d'un lot précis (traçabilité).
@@ -87,7 +91,7 @@ principaux et leurs méthodes métier.
 
 ### Objectif
 
-Montrer la **structure exacte de la base PostgreSQL** : les 16 tables, leurs colonnes avec
+Montrer la **structure exacte de la base PostgreSQL** : les 17 tables, leurs colonnes avec
 types SQL, clés primaires (`PK`), clés étrangères (`FK`) et contraintes d'unicité.
 
 ### Comment le lire
@@ -109,9 +113,17 @@ C'est la différence essentielle avec le diagramme de classes :
 
 ### Contenu (extrait du code réel)
 
-**16 tables** : `province`, `zone`, `colline`, `depot`, `engrais_type`, `lot`, `stock`,
+**17 tables** : `province`, `commune`, `zone`, `colline`, `depot`, `engrais_type`, `lot`, `stock`,
 `stock_lot`, `agriculteur`, `ticket`, `utilisateur`, `mouvement`, `distribution`, `alerte`,
 `seuil_alerte`, `audit_log`.
+
+**Modèle géographique et dépôts** :
+
+- `commune.province_id` et `zone.commune_id` portent la hiérarchie administrative.
+- `depot.niveau` ne prend que deux valeurs (`PROVINCE`, `ZONE`) ; `depot` référence
+  `province_id` et/ou `zone_id`, et **plus aucune colonne `colline_id`**.
+- `agriculteur.colline_id` reste présent : la colline est le lieu de résidence des
+  agriculteurs, pas un niveau de stockage.
 
 **Contraintes remarquables** :
 
@@ -134,7 +146,7 @@ C'est la différence essentielle avec le diagramme de classes :
 
 ### Points de vigilance
 
-- Ce diagramme reflète l'état **après toutes les migrations** (`V1` à `V12`), c'est-à-dire
+- Ce diagramme reflète l'état **après toutes les migrations** (`V1` à `V13`), c'est-à-dire
   l'état réel de production. Le fichier `V1__schema.sql` seul est incomplet
   (pas d'`email` sur `agriculteur`, pas de `seuil_alerte`, enums plus courts).
 - Les enums ont évolué : `V1` déclarait 4 rôles, le code en compte **5** ; `V1` déclarait
@@ -142,57 +154,48 @@ C'est la différence essentielle avec le diagramme de classes :
 
 ---
 
-## 3. Séquence — Distribution FIFO
+## 3. Circuit de distribution des engrais
 
-**Fichier** : `sequence_distribution.svg` — **Type** : diagramme de séquence (UML).
-**Source** : `DistributionService.distribuer()` et `StockService.sortirFifo()`.
+**Fichier** : `distribution_circuit.svg` — **Type** : diagramme de flux (vue métier).
 
 ### Objectif
 
-Montrer, **dans l'ordre chronologique**, ce qui se passe quand un agent distribue de l'engrais
-à un agriculteur. C'est le flux le plus important du système.
+Montrer le chemin physique des engrais, de l'usine de Maramvya jusqu'à l'agriculteur, en
+distinguant clairement les **deux niveaux de dépôts** du modèle FOMI et la distribution finale.
 
 ### Comment le lire
 
-- Les **colonnes verticales** (lignes de vie) = les composants : acteur, contrôleur, services, base.
-- Le **temps descend** : chaque flèche est un appel de méthode.
-- Une flèche **pleine** = appel ; une flèche **en pointillés** = retour de la méthode.
-- Les **notes** expliquent les points non évidents.
+- Les **rectangles** représentent les étapes logistiques, de haut en bas.
+- Le **site de production** (usine) n'est pas un dépôt de distribution : c'est le point de
+  départ des livraisons.
+- Le **niveau 1** est le dépôt provincial (BPEAE), le **niveau 2** le dépôt de zone.
+- La **colline** n'héberge aucun dépôt permanent : elle accueille un point de service
+  temporaire le jour de la distribution.
+- La note rappelle la hiérarchie administrative : `Province → Commune → Zone → Colline`.
 
-### Déroulement (fidèle au code)
+### Règles structurantes
 
-1. **Agent** → `DistributionController` : requête `POST /api/distributions`.
-2. Le contrôleur appelle `DistributionService.distribuer()`.
-3. **Verrou pessimiste** : `findByIdForUpdate(ticketId)` exécute un `SELECT ... FOR UPDATE`.
-   Le ticket est verrouillé pour toute la durée de la transaction.
-4. **Contrôle de périmètre** : `AGENT_COLLINE` ne peut distribuer que sur son propre dépôt ;
-   `AGENT_ZONE` seulement dans sa zone.
-5. **Contrôles métier** : statut du ticket autorisé, et quantité demandée ≤ restant.
-6. **Sortie FIFO** : `StockService.sortirFifo()` sélectionne les lots par
-   `ORDER BY lot.dateReceptionFomi ASC` — le lot **reçu en premier chez FOMI** sort en premier.
-   Les lots **périmés** sont exclus avant la boucle.
-7. Pour chaque lot sorti : création d'un `Mouvement` (type `DISTRIBUTION`) puis d'une `Distribution`.
-8. Le ticket est mis à jour : `quantiteServie += quantite`, puis statut recalculé (`PARTIEL` ou `SERVI`).
-9. Vérification des alertes, écriture du journal d'audit, notification email à l'agriculteur.
-10. Tout est dans **une seule transaction** (`@Transactional`) : si une étape échoue, tout est annulé.
+| Élément | Rôle | Stockage |
+|---|---|---|
+| Usine FOMI (Maramvya) | Production et stockage central | Oui (site de production) |
+| Dépôt provincial (BPEAE) | Répartition vers les communes et leurs zones | Oui — niveau `PROVINCE` |
+| Dépôt de zone | Dernier point de stockage fixe de la FOMI | Oui — niveau `ZONE` |
+| Colline | Point de service temporaire, lieu de résidence | Non |
+| Agriculteur | Bénéficiaire final | Non |
 
 ### À dire à l'oral
 
-> « C'est le diagramme central du mémoire. Trois choses à retenir.
-> **Premièrement**, le verrou pessimiste `SELECT FOR UPDATE` : il empêche deux agents de
-> servir le même ticket en même temps, ce qui provoquerait une double distribution.
-> **Deuxièmement**, le FIFO n'est pas basé sur la date de fabrication mais sur la date de
-> **réception chez FOMI** — c'est un choix métier : on veut écouler le stock présent en dépôt
-> le plus ancien, en écartant les lots périmés.
-> **Troisièmement**, une distribution partielle est normale : le ticket passe à `PARTIEL`
-> et reste servi en plusieurs fois. »
+> « Le circuit comporte deux niveaux de dépôts, pas trois. L'usine produit et stocke, mais elle
+> n'est pas un dépôt de distribution. Le dépôt provincial alimente les communes, puis les zones ;
+> le dépôt de zone est le dernier stockage fixe. Ensuite, la distribution se fait dans les
+> collines, sans magasin permanent : c'est un point de service organisé le jour du retrait. »
 
 ### Points de vigilance
 
-- La notification email est **non bloquante** : si le SMTP est injoignable, la distribution
-  réussit quand même (mode dégradé volontaire).
-- Le tri FIFO est un tri **base de données** (`OrderBy...Asc`), pas un tri Java : c'est plus
-  performant et cohérent.
+- La colline reste un niveau **administratif** (rattachement des agriculteurs et des tickets),
+  pas un niveau de **stockage** : le modèle ne connaît que `PROVINCE` et `ZONE`.
+- Le détail technique de la sortie FIFO (verrou pessimiste, lots périmés) est décrit dans la
+  partie conception du rapport, pas dans ce schéma de flux.
 
 ---
 
@@ -242,67 +245,36 @@ même si l'entité déclare `PAYE` par défaut. Le service force la valeur.
 
 ---
 
-## 5. Machine à états du ticket
+## 5. Architecture du système
 
-**Fichier** : `ticket_state_machine.svg` — **Type** : diagramme d'états-transitions (UML).
-**Source** : `StatutTicket.java` et `Ticket.mettreAJourStatut()`.
+**Fichier** : `architecture.svg` — **Type** : diagramme de composants (architecture 3 tiers).
 
 ### Objectif
 
-Montrer tous les états possibles d'un ticket et les transitions autorisées entre eux.
+Montrer l'organisation d'ensemble : les clients, l'API REST, la base de données et le service
+de notification.
 
 ### Comment le lire
 
-- Le **rond noir plein** = état initial. Le **rond cerclé** = état final.
-- Les **flèches** sont des transitions, étiquetées par l'action qui les déclenche.
-- Une **boucle** (flèche qui revient sur l'état) = une distribution partielle supplémentaire.
-
-### Diagramme simplifié
-
-```mermaid
-stateDiagram-v2
-    [*] --> EN_ATTENTE_DE_VALIDATION : créer
-    EN_ATTENTE_DE_VALIDATION --> ACTIF : valider
-    EN_ATTENTE_DE_VALIDATION --> REJETE : rejeter
-    ACTIF --> PARTIEL : distribuer (partiel)
-    ACTIF --> SERVI : distribuer (total)
-    PARTIEL --> SERVI : distribuer (solde)
-    PARTIEL --> PARTIEL : distribuer (partiel)
-    ACTIF --> EXPIRE : clôture saison
-    PARTIEL --> EXPIRE : clôture saison
-    SERVI --> [*]
-    REJETE --> [*]
-    EXPIRE --> [*]
-```
-
-### Transitions réelles
-
-| Depuis | Vers | Déclencheur | Code |
-|---|---|---|---|
-| — | `EN_ATTENTE_DE_VALIDATION` | création | `creer()` |
-| `EN_ATTENTE_DE_VALIDATION` | `ACTIF` | validation | `activer()` |
-| `EN_ATTENTE_DE_VALIDATION` | `REJETE` | rejet | `rejeter()` |
-| `ACTIF` | `PARTIEL` | distribution partielle | `mettreAJourStatut()` |
-| `ACTIF` | `SERVI` | distribution totale | `mettreAJourStatut()` |
-| `PARTIEL` | `SERVI` | distribution du solde | `mettreAJourStatut()` |
-| `ACTIF` / `PARTIEL` | `EXPIRE` | clôture de saison | `expirerTickets()` |
-| Toute modification | `EN_ATTENTE_DE_VALIDATION` | `modifier()` | remet le ticket en attente |
+- **Clients** : application web React/Vite (PWA) et application mobile Expo/React Native.
+- **API REST** : Spring Boot 3.3.5 / Java 21, organisée en quatre domaines — référentiels,
+  stocks et lots, tickets et distribution, alertes/statistiques/audit.
+- **Données** : PostgreSQL 16, **17 tables**, schéma versionné par **13 migrations** Flyway.
+- **Service externe** : notification email (SMTP), appelée de façon non bloquante.
 
 ### À dire à l'oral
 
-> « La logique de calcul du statut est dans la méthode `mettreAJourStatut()`. Elle commence par
-> un **garde-fou** : si le ticket est déjà `ANNULE`, `RECLAMATION`, `REJETE` ou `EXPIRE`, la
-> méthode ne fait rien — ces états sont considérés comme terminaux. Ensuite, si rien n'a été
-> servi, le statut ne change pas ; sinon il devient `SERVI` si tout est servi, `PARTIEL` sinon.
-> Un point important : **modifier un ticket le renvoie systématiquement en attente de
-> validation** — c'est une mesure de contrôle. »
+> « L'architecture est en trois tiers : les clients web et mobile consomment une API REST
+> unique, qui centralise les règles métier et parle à PostgreSQL. Les référentiels
+> géographiques suivent la hiérarchie réelle du Burundi — province, commune, zone, colline —
+> et seuls les dépôts provinciaux et de zone stockent des engrais. »
 
 ### Points de vigilance
 
-- **`ANNULE` et `RECLAMATION` ne sont jamais atteints** dans le code actuel : ils existent dans
-  l'énumération et sont testés, mais aucune méthode ne les assigne. Le diagramme les omet
-  volontairement pour ne pas laisser croire qu'ils sont fonctionnels.
-- Un ticket `EXPIRE` conserve ses distributions passées : l'expiration ne détruit rien.
+- L'application mobile est **prévue** dans l'architecture, mais le dépôt livré contient
+  principalement l'application web ; le diagramme de déploiement le signale.
+- Les notifications email sont volontairement **non bloquantes** : une panne SMTP ne fait pas
+  échouer une distribution.
 
 ---
 
@@ -373,7 +345,7 @@ la clôture de la saison, en indiquant **qui** fait chaque étape.
 
 ### Étapes du flux
 
-1. **Agriculteur** : demande un ticket au dépôt de colline.
+1. **Agriculteur** : se rend au point de distribution de sa colline et demande un ticket.
 2. **Agent colline** : enregistre et crée la demande.
 3. **Système** : vérifie les règles R22 (plafond et cumul) et R6 (unicité).
 4. **Décision** : si non conforme → refus. Si conforme → enregistrement en `EN_ATTENTE_DE_VALIDATION`.
@@ -511,7 +483,8 @@ Points relevés en comparant les diagrammes, `SecurityConfig`, le code et les mi
 
 - **Le diagramme de cas d'utilisation** associe la validation au rôle `AGENT_ZONE`.
 - **`SecurityConfig`** réserve `activer` et `rejeter` à **`ADMIN` et `SUPERVISEUR`**.
-- **Le texte du rapport** (`canevas_fixfacts.py`) peut encore citer un agent provincial.
+- **Le texte du rapport** peut encore citer un agent provincial dans les scripts historiques
+  de `tools/rapport/` (`canevas_fixfacts.py`).
 - ➜ **Décision à prendre** : soit corriger le diagramme, soit assumer le diagramme comme
   intention fonctionnelle et s'appuyer sur l'annexe A. Il ne faut **pas** laisser les deux se
   contredire dans le même document.
@@ -531,17 +504,19 @@ Points relevés en comparant les diagrammes, `SecurityConfig`, le code et les mi
 
 ### 4. Compteurs (valeurs divergentes selon les fichiers)
 
-| Donnée | Valeur **réelle** (code) | Où c'est faux |
+| Donnée | Valeur **réelle** (code) | Remarque |
 |---|---|---|
-| Tests (`@Test`) | **218** | `canevas_fixfacts.py` (207), `generate_docx.py` (203) |
-| Repositories | **16** | `generate_docx.py` (15) |
-| Migrations | **12** (`V1`→`V12`) | `canevas_fixfacts.py` (11), `generate_docx.py` (11) |
-| Tables | **16** | correct partout |
-| Contrôleurs | **17** | correct |
-| Endpoints | **62** mappings | `canevas_fixfacts.py` (60) |
+| Tests (`@Test`) | **218** | le rapport indique 218 (dont 215 d'intégration) |
+| Repositories | **17** | `CommuneRepository` inclus |
+| Migrations | **13** (`V1`→`V13`) | `V13__commune_depots_province_zone.sql` incluse |
+| Tables | **17** | table `commune` incluse |
+| Contrôleurs | **17** | inchangé |
+| Endpoints | **65** mappings | `GeoController` expose communes et zones par commune |
 
-➜ **Les diagrammes sont à jour, le texte du rapport ne l'est pas.** C'est la correction la
-plus urgente à faire avant la remise.
+➜ **Le rapport, les diagrammes et ce guide sont désormais alignés.** Les anciens scripts de
+`tools/rapport/` et `generate_docx.py` peuvent encore afficher 207 tests, 16 tables, 12
+migrations ou 62 endpoints : **ne pas les rejouer** sur le rapport final, ils sont conservés
+pour l'historique.
 
 ### 5. Fichiers obsolètes dans le dépôt
 
@@ -573,29 +548,30 @@ indiquer que l'API exécute elle-même ces jobs (pas de serveur de tâches exter
 
 ## Annexe C — Régénérer les diagrammes
 
-Les sources PlantUML ne sont pas versionnées dans ce dépôt. Pour modifier un diagramme :
+Les sources PlantUML **sont versionnées** dans `memoire_assets/puml_src/`. Chaque fichier
+`.puml` produit le PNG et le SVG du même nom dans `memoire_assets/`.
 
-1. Récupérer la source (elle a été utilisée pour produire le SVG correspondant).
-2. La coller sur [plantuml.com/plantuml](https://www.plantuml.com/plantuml).
-3. Cliquer sur **SVG**.
-4. Télécharger via PowerShell :
+1. Modifier la source concernée dans `memoire_assets/puml_src/`.
+2. Régénérer les images (Java 21 + `plantuml.jar` ; Graphviz est optionnel, PlantUML bascule
+   sur son moteur interne s'il est absent) :
 
 ```powershell
-Invoke-WebRequest -Uri "https://www.plantuml.com/plantuml/svg/XXXX" `
-  -OutFile "memoire_assets\nom_du_diagramme.svg" -UseBasicParsing
+java -jar plantuml.jar -tpng -o memoire_assets memoire_assets\puml_src\*.puml
+java -jar plantuml.jar -tsvg -o memoire_assets memoire_assets\puml_src\*.puml
 ```
 
-**En cmd**, utiliser `curl -L -o "memoire_assets\nom.svg" "URL"`.
+3. Réinjecter les PNG dans le rapport en conservant les proportions :
 
-**Thème commun** à tous les diagrammes (à conserver pour l'homogénéité) :
-
-```plantuml
-!theme materia-outline
-skinparam shadowing true
-skinparam roundCorner 12
-skinparam DefaultFontName "Segoe UI"
-skinparam ArrowColor #607D8B
+```powershell
+python update_docx_diagrams.py
 ```
+
+Le script `update_docx_diagrams.py` remplace les huit figures, plafonne la largeur à 15 cm et
+la hauteur à 20 cm, puis enregistre `Rapport_stage_FOMI_canevas.docx`.
+
+**Thème** : chaque source déclare son thème (`!theme vibrant`, `!theme toy`, ou styles
+`skinparam`). Conserver le thème existant d'un fichier pour ne pas casser l'homogénéité du
+mémoire ; la police commune est `Segoe UI` et le rendu PNG utilise `skinparam dpi 150`.
 
 **Insertion dans Word** : `Insertion` → `Images` → `Cet appareil` → sélectionner le `.svg`.
 Word 2016+ gère nativement le SVG.

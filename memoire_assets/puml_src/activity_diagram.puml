@@ -3,6 +3,7 @@ title Diagramme d'activités — Cycle de vie d'un ticket d'engrais
 skinparam shadowing false
 skinparam roundCorner 12
 skinparam DefaultFontName "Segoe UI"
+skinparam dpi 150
 skinparam ArrowColor #607D8B
 skinparam ActivityBackgroundColor #FFFFFF
 skinparam ActivityBorderColor #90A4AE
@@ -11,7 +12,7 @@ skinparam conditionStyle inside
 
 |Agriculteur|
 start
-:Se rendre au dépôt de colline;
+:Se rendre au point de distribution de sa colline;
 :Demander un ticket d'engrais;
 
 |Agent colline|

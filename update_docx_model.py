@@ -2,10 +2,10 @@
 """Mise à jour du rapport de stage pour le modèle métier strict FOMI.
 
 Modèle retenu : Province -> Commune -> Zone -> Colline, avec deux niveaux de
-stockage uniquement (PROVINCE et ZONE). La colline reste le lieu de résidence
-des agriculteurs, pas un niveau de dépôt.
+dépôts uniquement (PROVINCE et ZONE). La colline reste le lieu de résidence
+des agriculteurs, pas un niveau de stockage.
 
-Cette passe est idempotente : elle peut être rejouée après build_rapport.py.
+Cette passe est idempotente : elle peut être rejouée sans effet de bord.
 """
 import os
 import sys
@@ -24,7 +24,16 @@ manquants = []
 # ---------------------------------------------------------------------------
 # Outils
 # ---------------------------------------------------------------------------
-def set_para_text(p, text):
+def trace(label, n=1):
+    global modifs
+    if n:
+        modifs += n
+        print(f"  ok  {label}" + (f" ({n})" if n != 1 else ""))
+    else:
+        manquants.append(label)
+
+
+def set_text(p, text):
     if p.runs:
         p.runs[0].text = text
         for r in p.runs[1:]:
@@ -33,30 +42,35 @@ def set_para_text(p, text):
         p.add_run(text)
 
 
-def replace_exact(old, new):
-    global modifs
-    matches = [p for p in doc.paragraphs if p.text.strip() == old]
-    if not matches:
-        manquants.append(old[:70])
-        return False
-    for p in matches:
-        set_para_text(p, new)
-        modifs += 1
-    return True
+def replace_para(old, new, label):
+    """Remplace tout le texte d'un paragraphe identifié par son début."""
+    hits = [p for p in doc.paragraphs if p.text.strip() == old]
+    if not hits:
+        hits = [p for p in doc.paragraphs if p.text.strip().startswith(old)]
+    for p in hits:
+        set_text(p, new)
+    trace(label, len(hits))
 
 
-def replace_in_paragraphs(old, new, expected=None):
-    """Remplace une sous-chaîne dans tous les paragraphes qui la contiennent."""
-    global modifs
+def replace_in(old, new, label):
+    """Remplace une sous-chaîne dans tous les paragraphes."""
     n = 0
     for p in doc.paragraphs:
         if old in p.text:
-            set_para_text(p, p.text.replace(old, new))
+            set_text(p, p.text.replace(old, new))
             n += 1
-    if n == 0:
-        manquants.append(old[:70])
-    modifs += n
-    return n
+    trace(label, n)
+
+
+def replace_first_line(starts, new_line, label):
+    n = 0
+    for p in doc.paragraphs:
+        if p.text.strip().startswith(starts):
+            lines = p.text.split("\n")
+            lines[0] = new_line
+            set_text(p, "\n".join(lines))
+            n += 1
+    trace(label, n)
 
 
 def set_cell(cell, text):
@@ -71,8 +85,15 @@ def set_cell(cell, text):
         extra._element.getparent().remove(extra._element)
 
 
+def find_table(*header_cells):
+    for table in doc.tables:
+        header = [c.text.strip() for c in table.rows[0].cells]
+        if header[:len(header_cells)] == list(header_cells):
+            return table
+    return None
+
+
 def insert_row_after(table, index, values):
-    """Insère une ligne après `index` en clonant son format."""
     tr = deepcopy(table.rows[index]._tr)
     table.rows[index]._tr.addnext(tr)
     row = table.rows[index + 1]
@@ -80,150 +101,116 @@ def insert_row_after(table, index, values):
         set_cell(cell, value)
 
 
-def find_table(header_first_cells):
-    for table in doc.tables:
-        header = [c.text.strip() for c in table.rows[0].cells]
-        if header[:len(header_first_cells)] == header_first_cells:
-            return table
-    return None
-
-
-def set_cell_if(table, row, col, expected_prefix, new):
-    cell = table.rows[row].cells[col]
-    if cell.text.strip().startswith(expected_prefix):
-        set_cell(cell, new)
-        return True
-    return False
+def insert_paragraph_like(anchor, text):
+    p = anchor.insert_paragraph_before()
+    p.style = anchor.style
+    run = p.add_run(text)
+    if anchor.runs:
+        src = anchor.runs[0]
+        run.font.name = src.font.name
+        run.font.size = src.font.size
+    return p
 
 
 # ---------------------------------------------------------------------------
-# 1. Texte : circuit de distribution et niveaux de stockage
+# 1. Circuit de distribution : deux niveaux de dépôts
 # ---------------------------------------------------------------------------
-replace_exact(
-    "Le mécanisme de distribution repose sur un circuit hiérarchisé acheminant les produits "
-    "depuis l'usine FOMI de Maramvya jusqu'aux agriculteurs bénéficiaires. Les engrais, d'abord "
-    "stockés à l'usine, sont acheminés vers les dépôts provinciaux, puis vers les dépôts de zone "
-    "et de colline, où les agriculteurs viennent retirer leurs engrais sur présentation de leurs "
-    "tickets. Ce circuit implique de multiples acteurs et institutions, chacun jouant un rôle "
-    "spécifique dans la chaîne de distribution.",
-    "Le mécanisme de distribution repose sur un circuit hiérarchisé acheminant les produits depuis "
-    "l'usine FOMI de Maramvya jusqu'aux agriculteurs bénéficiaires. Les engrais, d'abord stockés à "
-    "l'usine, sont acheminés vers les dépôts provinciaux, puis vers les dépôts de zone, dernier "
-    "niveau de stockage permanent maîtrisé par la FOMI. Les agriculteurs viennent ensuite retirer "
-    "leurs engrais dans ces dépôts de zone sur présentation de leurs tickets. Ce circuit implique de "
-    "multiples acteurs et institutions, chacun jouant un rôle spécifique dans la chaîne de "
-    "distribution.",
-)
-
-replace_in_paragraphs("lors du retrait effectif des engrais au dépôt de colline",
-                      "lors du retrait effectif des engrais au dépôt de zone")
-replace_in_paragraphs("une architecture logistique articulée autour de quatre niveaux de stockage fixes",
-                      "une architecture logistique articulée autour de deux niveaux de stockage fixes (province et zone)")
-replace_in_paragraphs("au point de distribution collinaire",
-                      "au point de service organisé dans sa colline")
-replace_in_paragraphs("(provinces, zones et collines)",
-                      "(provinces, communes, zones et collines)")
-replace_in_paragraphs("jusqu’aux points de distribution collinaires",
-                      "jusqu’aux dépôts de zone et aux collines desservies")
-
-replace_exact(
+replace_para(
+    "La distribution des engrais FOMI suit un circuit logistique et administratif hiérarchisé",
     "La distribution des engrais FOMI suit un circuit logistique et administratif hiérarchisé, "
-    "depuis l'usine de Maramvya jusqu'aux agriculteurs bénéficiaires. Ce circuit, restructuré en "
-    "conformité avec l'organisation territoriale du pays, implique une chaîne d'approvisionnement "
-    "en quatre niveaux de stockage fixes, complétée par un système de distribution finale au niveau "
-    "de chaque colline.",
-    "La distribution des engrais FOMI suit un circuit logistique et administratif hiérarchisé, "
-    "depuis l'usine de Maramvya jusqu'aux agriculteurs bénéficiaires. Ce circuit, restructuré en "
-    "conformité avec l'organisation territoriale du pays (province, commune, zone, colline), "
-    "s'appuie sur deux niveaux de stockage fixes — le dépôt provincial et le dépôt de zone — "
-    "complétés par la distribution finale aux agriculteurs dans les collines.",
+    "depuis l’usine de Maramvya jusqu’aux agriculteurs bénéficiaires (Figure I.1). Ce circuit, "
+    "restructuré en conformité avec l’organisation territoriale du pays (province, commune, zone, "
+    "colline), s’appuie sur deux niveaux de dépôts fixes et permanents — le dépôt provincial et le "
+    "dépôt de zone — complétés par une distribution finale organisée au niveau de chaque colline.",
+    "circuit : deux niveaux de dépôts",
 )
 
-replace_exact(
-    "Niveau 4 : Les points de distribution de colline (Livraison éphémère)\n"
-    "À ce stade, la logistique lourde s'arrête. Sous la coordination de l'administration locale et "
-    "des comités collinaires, les engrais sont transférés depuis le dépôt de zone vers les collines "
-    "de destination. Faute d'infrastructures de stockage permanentes, des sites communautaires "
-    "éphémères (hangars, églises, écoles) sont réquisitionnés uniquement le jour de la distribution "
-    "pour décharger temporairement les volumes (20 à 100 tonnes) et servir immédiatement les "
-    "producteurs.",
-    "Distribution finale : les collines (sans stockage permanent)\n"
-    "À ce stade, la logistique lourde s'arrête : la FOMI ne gère plus de dépôt de colline. Sous la "
-    "coordination de l'administration locale et des comités collinaires, les engrais sont acheminés "
-    "depuis le dépôt de zone vers les collines de destination. Faute d'infrastructures de stockage "
-    "permanentes, des sites communautaires éphémères (hangars, églises, écoles) sont réquisitionnés "
-    "uniquement le jour de la distribution pour décharger temporairement les volumes et servir "
-    "immédiatement les producteurs. Le système FOMI-Stock modélise la colline comme le lieu de "
-    "résidence des agriculteurs, et non comme un niveau de stockage.",
+replace_first_line(
+    "Niveau 1 : L'usine FOMI de Maramvya",
+    "Site de production : l'usine FOMI de Maramvya (stockage central)",
+    "usine = site de production",
 )
-
-replace_exact(
-    "L'exploitant se présente au point de distribution collinaire muni de sa pièce d'identité et de "
-    "son bon de commande numérique ou papier (ticket de distribution). Ce ticket nominatif, délivré "
-    "après paiement, spécifie la nature de l'engrais organo-minéral, le quota exact autorisé calculé "
-    "selon ses superficies, ainsi que la saison agricole concernée.",
-    "L'exploitant se présente au point de service organisé dans sa colline, muni de sa pièce "
-    "d'identité et de son bon de commande numérique ou papier (ticket de distribution). Ce ticket "
-    "nominatif, délivré après paiement, spécifie la nature de l'engrais organo-minéral, le quota "
-    "exact autorisé calculé selon ses superficies, ainsi que la saison agricole concernée.",
+replace_first_line(
+    "Niveau 2 : Les dépôts provinciaux",
+    "Niveau 1 : Le dépôt provincial — BPEAE (stockage régional)",
+    "dépôt provincial = niveau 1",
 )
-
-# ---------------------------------------------------------------------------
-# 2. Compteurs : tables, entités, repositories, migrations, endpoints
-# ---------------------------------------------------------------------------
-replace_in_paragraphs("16 repositories", "17 repositories")
-replace_in_paragraphs("16 entités métier", "17 entités métier")
-replace_in_paragraphs("comprend 16 tables principales", "comprend 17 tables principales")
-replace_in_paragraphs("géré par Flyway avec 12 versions de migration numérotées",
-                      "géré par Flyway avec 13 versions de migration numérotées")
-replace_in_paragraphs(
-    "référentiels (types d'engrais, provinces, zones, collines, dépôts, lots, stocks)",
-    "référentiels (types d'engrais, provinces, communes, zones, collines, dépôts, lots, stocks)",
+replace_in(
+    "assurent la répartition des stocks entre les différentes communes et zones de leur ressort",
+    "assurent la répartition des stocks vers les communes, puis les zones de leur ressort",
+    "répartition province -> communes -> zones",
 )
-
-replace_exact(
-    "Les résultats obtenus sont les suivants : une API REST documentée exposant soixante-deux "
-    "endpoints, couvrant les référentiels, les réceptions, les transferts, la distribution FIFO, les "
-    "tickets et leur workflow, les alertes, les statistiques, les exports CSV, la piste d'audit et "
-    "les notifications email des agriculteurs ; un modèle de données relationnel de seize tables "
-    "géré par douze migrations Flyway ; un mécanisme de sécurité JWT avec cinq rôles et un hachage "
-    "BCrypt ; un système d'alertes automatiques ; et une suite de deux cent dix-huit tests "
-    "automatisés, dont deux cent quinze tests d'intégration sur PostgreSQL réel et trois tests "
-    "unitaires.",
-    "Les résultats obtenus sont les suivants : une API REST documentée exposant soixante-cinq "
-    "endpoints, couvrant les référentiels géographiques (provinces, communes, zones, collines), les "
-    "réceptions, les transferts, la distribution FIFO, les tickets et leur workflow, les alertes, "
-    "les statistiques, les exports CSV, la piste d'audit et les notifications email des "
-    "agriculteurs ; un modèle de données relationnel de dix-sept tables géré par treize migrations "
-    "Flyway ; un mécanisme de sécurité JWT avec cinq rôles et un hachage BCrypt ; un système "
-    "d'alertes automatiques ; et une suite de deux cent dix-huit tests automatisés, dont deux cent "
-    "quinze tests d'intégration sur PostgreSQL réel et trois tests unitaires.",
+replace_first_line(
+    "Niveau 3 : Les dépôts de zone",
+    "Niveau 2 : Le dépôt de zone (terminus logistique officiel de la FOMI)",
+    "dépôt de zone = niveau 2",
+)
+replace_first_line(
+    "Distribution finale : les points de distribution de colline",
+    "Distribution finale : les collines (sans dépôt permanent)",
+    "collines sans dépôt",
+)
+replace_in(
+    "au point de distribution collinaire",
+    "au point de service organisé dans sa colline",
+    "retrait organisé dans la colline",
 )
 
 # ---------------------------------------------------------------------------
-# 3. Tableaux : besoins, cas d'utilisation, modèle de données, enums, RBAC
+# 2. Compteurs : entités, tables, migrations, endpoints, tests
 # ---------------------------------------------------------------------------
-t_besoins = find_table(["ID", "Catégorie", "Description"])
+replace_in("soixante-deux points d’entrée", "soixante-cinq points d’entrée", "P312 : 65 endpoints")
+replace_in("seize tables relationnelles", "dix-sept tables relationnelles", "P313 : 17 tables")
+replace_in("douze migrations Flyway", "treize migrations Flyway", "P313 : 13 migrations")
+replace_in("seize tables principales", "dix-sept tables principales", "P318 : 17 tables")
+replace_in("les seize entités du système", "les dix-sept entités du système", "P327 : 17 entités")
+replace_in("(province, zone, colline)", "(province, commune, zone, colline)", "P327 : hiérarchie")
+replace_in("provinces, zones, collines, dépôts", "provinces, communes, zones, collines, dépôts",
+           "P391 : référentiels")
+replace_in("12 versions de migration", "13 versions de migration", "P246 : 13 versions")
+
+replace_in("soixante-deux endpoints", "soixante-cinq endpoints", "P402 : 65 endpoints")
+replace_in("de seize tables", "de dix-sept tables", "P402 : 17 tables")
+replace_in("de douze migrations", "de treize migrations", "P402 : 13 migrations")
+replace_in("deux cent sept tests", "deux cent dix-huit tests", "P402 : 218 tests")
+replace_in("deux cent quatre tests d’intégration", "deux cent quinze tests d’intégration",
+           "P402 : 215 tests d'intégration")
+
+# ---------------------------------------------------------------------------
+# 3. Tableaux : besoins, cas d'utilisation, modèle de données, enums, packages
+# ---------------------------------------------------------------------------
+t_besoins = find_table("ID", "Catégorie", "Description")
 if t_besoins is not None:
-    if set_cell_if(t_besoins, 3, 2, "Gestion des provinces",
-                   "Gestion des provinces, communes, zones et collines (hiérarchie administrative)"):
-        modifs += 1
-    if set_cell_if(t_besoins, 8, 2, "Transferts inter-dépôts",
-                   "Transferts inter-dépôts (province, zone) avec vérification de disponibilité à la source"):
-        modifs += 1
+    for row in t_besoins.rows:
+        label = row.cells[0].text.strip()
+        if label == "F3":
+            set_cell(row.cells[2],
+                     "Gestion des provinces/communes/zones/collines (hiérarchie administrative)")
+            modifs += 1
+        elif label == "F8" and "colline" in row.cells[2].text:
+            set_cell(row.cells[2], "Transferts inter-dépôts (province, zone) avec vérification "
+                                   "de disponibilité à la source")
+            modifs += 1
+    print("  ok  tableau des besoins")
 
-t_uc = find_table(["ID", "Cas d'utilisation", "Acteur"])
+t_uc = find_table("ID", "Cas d'utilisation", "Acteur", "Précondition", "Résultat")
 if t_uc is not None:
-    if set_cell_if(t_uc, 3, 4, "CRUD provinces", "CRUD provinces/communes/zones/collines"):
-        modifs += 1
-    if set_cell_if(t_uc, 4, 4, "CRUD des dépôts", "CRUD des dépôts (province, zone)"):
-        modifs += 1
+    for row in t_uc.rows:
+        label = row.cells[0].text.strip()
+        if label == "UC-03" and "commune" not in row.cells[4].text:
+            set_cell(row.cells[4], "CRUD provinces/communes/zones/collines")
+            modifs += 1
+        elif label == "UC-04" and "colline" in row.cells[4].text:
+            set_cell(row.cells[4], "CRUD des dépôts (province, zone)")
+            modifs += 1
+    print("  ok  tableau des cas d'utilisation")
 
-t_tables = find_table(["Table", "Description", "Colonnes clés"])
+t_tables = find_table("Table", "Description", "Colonnes clés")
 if t_tables is not None:
-    descriptions = [r.cells[0].text.strip() for r in t_tables.rows]
-    if "commune" not in descriptions:
-        insert_row_after(t_tables, 1, [
+    labels = [r.cells[0].text.strip() for r in t_tables.rows]
+    if "commune" not in labels:
+        idx = labels.index("province") if "province" in labels else 1
+        insert_row_after(t_tables, idx, [
             "commune",
             "Communes rattachées aux provinces",
             "id, code, nom, province_id, created_at",
@@ -235,64 +222,78 @@ if t_tables is not None:
             set_cell(row.cells[1], "Zones administratives rattachées aux communes")
             set_cell(row.cells[2], "id, code, nom, commune_id, created_at")
             modifs += 1
-        if label == "depot" and "colline_id" in row.cells[2].text:
+        elif label == "depot" and "colline_id" in row.cells[2].text:
             set_cell(row.cells[1], "Dépôts de stockage (province, zone)")
             set_cell(row.cells[2], "id, code, nom, niveau, province_id, zone_id, seuil_alerte_min, "
                                    "capacite_max, actif, created_at")
             modifs += 1
+    print("  ok  tableau des tables")
 
-t_enums = find_table(["Enum", "Valeurs", "Usage"])
+t_enums = find_table("Enum", "Valeurs", "Usage")
 if t_enums is not None:
     for row in t_enums.rows:
         if row.cells[0].text.strip() == "NiveauDepot" and "COLLINE" in row.cells[1].text:
             set_cell(row.cells[1], "PROVINCE, ZONE")
             modifs += 1
+    print("  ok  tableau des enums")
 
-t_rbac = find_table(["Rôle", "Permissions principales", "Périmètre"])
-if t_rbac is not None:
-    for row in t_rbac.rows:
-        if row.cells[0].text.strip() == "AGENT_COLLINE" and "colline" in row.cells[2].text:
-            set_cell(row.cells[1], "Distribution et création de tickets au niveau des collines.")
-            set_cell(row.cells[2], "Dépôt de sa zone")
+t_packages = find_table("Package", "Contenu", "Nombre de classes")
+if t_packages is not None:
+    for row in t_packages.rows:
+        if row.cells[0].text.strip() == "repository" and "16" in row.cells[2].text:
+            set_cell(row.cells[2], "17 interfaces")
             modifs += 1
+        elif row.cells[0].text.strip() == "model/entity" and "16" in row.cells[2].text:
+            set_cell(row.cells[2], "17 classes")
+            modifs += 1
+    print("  ok  tableau des packages")
 
 # ---------------------------------------------------------------------------
-# 4. Annexe B : nouveaux endpoints communes/zones
+# 4. Annexe B : endpoints manquants (communes, notifier, expirer)
 # ---------------------------------------------------------------------------
-t_endpoints = find_table(["Méthode", "Endpoint", "Description", "Rôle"])
+t_endpoints = find_table("Méthode", "Endpoint", "Description", "Rôle")
 if t_endpoints is not None:
-    endpoints = [r.cells[1].text.strip() for r in t_endpoints.rows]
-    if "/api/communes" not in endpoints:
+    existants = [r.cells[1].text.strip() for r in t_endpoints.rows]
+
+    def add_after(path_anchor, values):
+        if values[1] in existants:
+            return
         anchor = next(i for i, r in enumerate(t_endpoints.rows)
-                      if r.cells[1].text.strip() == "/api/provinces")
-        for values in (
-            ("GET", "/api/communes", "Liste des communes", "AUTH"),
-            ("GET", "/api/provinces/{id}/communes", "Communes d'une province", "AUTH"),
-            ("GET", "/api/communes/{id}/zones", "Zones d'une commune", "AUTH"),
-        ):
-            insert_row_after(t_endpoints, anchor, values)
-            anchor += 1
-            modifs += 1
+                      if r.cells[1].text.strip() == path_anchor)
+        insert_row_after(t_endpoints, anchor, values)
+        existants.insert(anchor + 1, values[1])
+
+    add_after("/api/agriculteurs/{id}",
+              ("POST", "/api/agriculteurs/{id}/notifier",
+               "Notifier un agriculteur par email", "ADMIN, AGENT_ZONE, AGENT_COLLINE"))
+    add_after("/api/provinces",
+              ("GET", "/api/communes", "Liste des communes", "AUTH"))
+    add_after("/api/provinces",
+              ("GET", "/api/provinces/{id}/communes", "Communes d'une province", "AUTH"))
+    add_after("/api/zones",
+              ("GET", "/api/communes/{id}/zones", "Zones d'une commune", "AUTH"))
+    add_after("/api/tickets/{id}/rejeter",
+              ("POST", "/api/tickets/expirer",
+               "Clôturer une saison et expirer les tickets non servis",
+               "ADMIN, SUPERVISEUR"))
+    print("  ok  annexe B : endpoints")
 
 # ---------------------------------------------------------------------------
 # 5. Annexe C : extrait de schéma aligné sur V13
 # ---------------------------------------------------------------------------
-replace_exact("Extrait consolidé des migrations V1, V7, V11 et V12 :",
-              "Extrait consolidé des migrations V1, V7, V11, V12 et V13 :")
-replace_exact("CREATE TYPE niveau_depot AS ENUM ('PROVINCE', 'ZONE', 'COLLINE');",
-              "CREATE TYPE niveau_depot AS ENUM ('PROVINCE', 'ZONE');")
-replace_exact("colline_id       BIGINT REFERENCES colline(id),",
-              "-- V13 : colline_id supprimé (aucun dépôt de colline)")
-replace_exact("return depot.getColline() != null && depot.getColline().getZone() != null",
-              "return depot.getZone() != null")
-replace_exact("&& zoneId.equals(depot.getColline().getZone().getId());",
-              "&& zoneId.equals(depot.getZone().getId());")
+replace_para("Extrait consolidé des migrations V1, V7 et V11 :",
+             "Extrait consolidé des migrations V1, V7, V11, V12 et V13 :",
+             "annexe C : versions")
+replace_para("CREATE TYPE niveau_depot AS ENUM ('PROVINCE', 'ZONE', 'COLLINE');",
+             "CREATE TYPE niveau_depot AS ENUM ('PROVINCE', 'ZONE');",
+             "annexe C : enum niveau_depot")
+replace_para("colline_id       BIGINT REFERENCES colline(id),",
+             "-- V13 : colline_id supprimé (aucun dépôt de colline)",
+             "annexe C : suppression colline_id")
 
-# Ajout de l'extrait commune/zone avant la table depot de l'annexe C.
 anchor = next((p for p in doc.paragraphs if p.text.strip() == "CREATE TABLE depot ("), None)
-if anchor is not None and not any(p.text.strip() == "CREATE TABLE commune ("
-                                  for p in doc.paragraphs):
-    block = [
+if anchor is not None and not any(p.text.strip() == "CREATE TABLE commune (" for p in doc.paragraphs):
+    for line in [
         "CREATE TABLE commune (",
         "    id          BIGSERIAL PRIMARY KEY,",
         "    code        VARCHAR(30)  NOT NULL UNIQUE,",
@@ -304,13 +305,16 @@ if anchor is not None and not any(p.text.strip() == "CREATE TABLE commune ("
         "ALTER TABLE zone ADD COLUMN commune_id BIGINT REFERENCES commune(id);",
         "-- V13 : zone.commune_id devient NOT NULL ; zone.province_id est supprimé",
         "",
-    ]
-    for line in block:
-        p = anchor.insert_paragraph_before(line, style=anchor.style)
+    ]:
+        insert_paragraph_like(anchor, line)
         modifs += 1
 
+# ---------------------------------------------------------------------------
+# Sauvegarde
+# ---------------------------------------------------------------------------
 doc.save(DOC)
 
+print()
 print(f"Rapport mis à jour : {DOC}")
 print(f"Modifications appliquées : {modifs}")
 if manquants:

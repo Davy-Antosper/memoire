@@ -4,6 +4,7 @@ title Diagramme de classes — Système de gestion des stocks FOMI
 skinparam shadowing true
 skinparam roundCorner 14
 skinparam DefaultFontName "Segoe UI"
+skinparam dpi 150
 skinparam linetype ortho
 skinparam nodesep 35
 skinparam ranksep 45
@@ -11,12 +12,18 @@ skinparam ArrowColor #546E7A
 hide circle
 hide empty members
 
-' --- Directions imposées pour éviter les croisements ---
-Province -up-> Zone
+' --- Hiérarchie administrative : Province -> Commune -> Zone -> Colline ---
+Province -up-> Commune
+Commune -up-> Zone
 Zone -up-> Colline
 Colline -up-> Agriculteur
 
 class Province {
+  + id : Long
+  + code : String
+  + nom : String
+}
+class Commune {
   + id : Long
   + code : String
   + nom : String
@@ -119,6 +126,10 @@ class AuditLog {
   + entityType : String
   + entityId : Long
 }
+
+' --- Rattachement des dépôts (PROVINCE ou ZONE uniquement) ---
+Depot "0..*" -up- "0..1" Province : rattache
+Depot "0..*" -up- "0..1" Zone : rattache
 
 ' --- Relations réelles uniquement ---
 Agriculteur "1" -up- "0..*" Ticket : demande

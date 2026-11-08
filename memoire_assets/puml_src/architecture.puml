@@ -4,6 +4,7 @@ title Architecture du systeme FOMI-Stock
 skinparam shadowing false
 skinparam roundCorner 14
 skinparam DefaultFontName "Segoe UI"
+skinparam dpi 150
 skinparam ArrowColor #546E7A
 skinparam nodesep 28
 skinparam ranksep 55
@@ -25,7 +26,7 @@ package "API REST — Spring Boot 3.3.5 / Java 21" {
 }
 
 package "Donnees" {
-  database "PostgreSQL 16\n16 tables" as DB #F3E5F5
+  database "PostgreSQL 16\n17 tables" as DB #F3E5F5
 }
 
 rectangle "Service de\nnotification email" as MAIL #ECEFF1

@@ -3,24 +3,32 @@ title Circuit de distribution des engrais FOMI
 skinparam shadowing false
 skinparam roundCorner 14
 skinparam DefaultFontName "Segoe UI"
+skinparam dpi 150
 skinparam ArrowColor #546E7A
 skinparam linetype ortho
 skinparam nodesep 35
 skinparam ranksep 55
 skinparam rectangleBorderColor #90A4AE
 skinparam rectangleBackgroundColor #FFFFFF
-scale 2
 
-rectangle "NIVEAU 1\nUsine FOMI de Maramvya\nStockage central" as USINE #E3F2FD
-rectangle "NIVEAU 2\nDepots provinciaux (BPEAE)\nStockage regional" as PROV #E8F5E9
-rectangle "NIVEAU 3\nDepots de zone\nDernier stockage fixe de FOMI" as ZONE #FFFDE7
-rectangle "Points de distribution collinaires\nLivraison ephemere, sans depot\nle jour de la distribution" as COLL #FFF3E0
-rectangle "Agriculteur\nBeneficiaire final" as AGR #F3E5F5
+rectangle "Site de production\nUsine FOMI de Maramvya\nProduction et stockage central" as USINE #E3F2FD
+rectangle "NIVEAU 1 — Dépôt provincial (BPEAE)\nStockage régional\nProvince → Communes" as PROV #E8F5E9
+rectangle "NIVEAU 2 — Dépôt de zone\nDernier stockage fixe de la FOMI\nZone → Collines" as ZONE #FFFDE7
+rectangle "Distribution finale dans les collines\nPoint de service temporaire, sans dépôt\nle jour de la distribution" as COLL #FFF3E0
+rectangle "Agriculteur\nBénéficiaire final" as AGR #F3E5F5
 
-' Trois niveaux de stockage fixes, puis la distribution finale
-USINE -right-> PROV : "Reception FOMI"
+' Deux niveaux de dépôts fixes, puis la distribution finale
+USINE -down-> PROV : "Réception FOMI"
 PROV -down-> ZONE : "Transfert"
-ZONE -left-> COLL : "Acheminement"
+ZONE -down-> COLL : "Acheminement"
 COLL -down-> AGR : "Distribution"
+
+note right of PROV
+  Hiérarchie administrative :
+  Province → Commune → Zone → Colline
+  Dépôts de stockage : PROVINCE et ZONE
+  (la colline est un lieu de résidence,
+  pas un niveau de stockage)
+end note
 
 @enduml

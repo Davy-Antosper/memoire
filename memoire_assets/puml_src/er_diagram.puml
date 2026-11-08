@@ -4,6 +4,7 @@ title Modèle physique de données — Système FOMI-Stock
 skinparam shadowing false
 skinparam roundCorner 10
 skinparam DefaultFontName "Segoe UI"
+skinparam dpi 150
 skinparam ArrowColor #607D8B
 skinparam EntityBorderColor #90A4AE
 skinparam EntityBackgroundColor #FFFFFF
@@ -18,12 +19,20 @@ entity "province" as PROV {
   nom : VARCHAR(100)
   created_at : TIMESTAMP
 }
+entity "commune" as COMMUNE {
+  * id : BIGSERIAL <<PK>>
+  --
+  code : VARCHAR(30) <<UNIQUE>>
+  nom : VARCHAR(100)
+  province_id : BIGINT <<FK>>
+  created_at : TIMESTAMP
+}
 entity "zone" as ZONE {
   * id : BIGSERIAL <<PK>>
   --
   code : VARCHAR(20) <<UNIQUE>>
   nom : VARCHAR(100)
-  province_id : BIGINT <<FK>>
+  commune_id : BIGINT <<FK>>
   created_at : TIMESTAMP
 }
 entity "colline" as COLL {
@@ -44,8 +53,8 @@ entity "depot" as DEPOT {
   niveau : niveau_depot
   province_id : BIGINT <<FK>>
   zone_id : BIGINT <<FK>>
-  colline_id : BIGINT <<FK>>
   seuil_alerte_min : INTEGER
+  capacite_max : INTEGER
   actif : BOOLEAN
 }
 entity "engrais_type" as ENG {
@@ -186,12 +195,12 @@ entity "seuil_alerte" as SEUIL {
 }
 
 ' ===== Relations =====
-PROV ||--o{ ZONE
+PROV ||--o{ COMMUNE
+COMMUNE ||--o{ ZONE
 ZONE ||--o{ COLL
 COLL ||--o{ AGR
-COLL ||--o{ DEPOT
-ZONE ||--o{ DEPOT
 PROV ||--o{ DEPOT
+ZONE ||--o{ DEPOT
 
 ENG ||--o{ LOT
 ENG ||--o{ STOCK

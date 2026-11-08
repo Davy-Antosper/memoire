@@ -3,6 +3,7 @@ title Cas d'utilisation — Système FOMI-Stock
 skinparam shadowing false
 skinparam roundCorner 14
 skinparam DefaultFontName "Segoe UI"
+skinparam dpi 150
 skinparam ArrowColor #607D8B
 skinparam ActorBorderColor #455A64
 skinparam UsecaseBorderColor #90A4AE
@@ -38,6 +39,8 @@ rectangle "Système FOMI-Stock" {
   usecase "Traiter les alertes" as UC_ALERTE
   usecase "Consulter les statistiques" as UC_STATS
   usecase "Gérer les utilisateurs" as UC_USERS
+  usecase "Gérer la géographie\n(province, commune, zone, colline)" as UC_GEO
+  usecase "Gérer les dépôts\n(province, zone)" as UC_DEPOT
   usecase "Consulter l'audit" as UC_AUDIT
 
   ' relations entre cas
@@ -68,5 +71,7 @@ SUP --> UC_STATS
 SUP --> UC_AUDIT
 
 ADM --> UC_USERS
+ADM --> UC_GEO
+ADM --> UC_DEPOT
 ADM --> UC_STATS
 @enduml
