@@ -19,7 +19,7 @@ class ValidationTicketIntegrationTest extends BaseIntegrationTest {
                 "montantPaye", quantite * 25000L,
                 "datePaiement", "2026-03-15",
                 "depotRetraitId", 6,
-                "saison", "2026A"));
+                "saison", "2027A"));
         assertThat(code(result)).isEqualTo(200);
         return node(result).get("id").asLong();
     }
@@ -142,7 +142,7 @@ class ValidationTicketIntegrationTest extends BaseIntegrationTest {
                 "montantPaye", 100000,
                 "datePaiement", "2026-03-20",
                 "depotRetraitId", 6,
-                "saison", "2026A"));
+                "saison", "2027A"));
         assertThat(code(update)).isEqualTo(200);
         JsonNode updated = node(update);
         assertThat(updated.get("statut").asText()).isEqualTo("EN_ATTENTE_DE_VALIDATION");

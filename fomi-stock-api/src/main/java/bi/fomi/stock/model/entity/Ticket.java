@@ -59,7 +59,7 @@ public class Ticket {
 
     @Column(nullable = false, length = 10)
     @Builder.Default
-    private String saison = "2026A";
+    private String saison = "2027A";
 
     @Column(name = "superficie_ha")
     private java.math.BigDecimal superficieHa;

@@ -27,7 +27,7 @@ class AuditLogIntegrationTest extends BaseIntegrationTest {
                 "montantPaye", 75000,
                 "datePaiement", "2026-03-20",
                 "depotRetraitId", 6,
-                "saison", "2026A"));
+                "saison", "2027A"));
         long ticketId = node(result).get("id").asLong();
 
         List<AuditLog> logs = auditLogRepository.findByEntityTypeAndEntityIdOrderByCreatedAtDesc("Ticket", ticketId);
@@ -48,7 +48,7 @@ class AuditLogIntegrationTest extends BaseIntegrationTest {
                 "montantPaye", 50000,
                 "datePaiement", "2026-03-20",
                 "depotRetraitId", 6,
-                "saison", "2026A"));
+                "saison", "2027A"));
         long ticketId = node(ticketResult).get("id").asLong();
         assertThat(code(apiPatch("/api/tickets/" + ticketId + "/activer", token))).isEqualTo(200);
 

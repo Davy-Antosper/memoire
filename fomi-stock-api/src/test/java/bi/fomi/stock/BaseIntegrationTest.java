@@ -120,7 +120,7 @@ public abstract class BaseIntegrationTest {
                 "montantPaye", quantite * 31000L,
                 "datePaiement", "2026-03-15",
                 "depotRetraitId", depotId,
-                "saison", "2026A"));
+                "saison", "2027A"));
         long id = node(created).get("id").asLong();
         assertThat(code(apiPatch("/api/tickets/" + id + "/activer", token))).isEqualTo(200);
         return id;

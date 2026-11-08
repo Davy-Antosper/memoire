@@ -142,14 +142,14 @@ $tickets = Invoke-Api -Method GET -Path '/api/tickets?page=0&size=5' -Token $tok
 $ticketsJson = $tickets.Body | ConvertFrom-Json
 Check 'GET /api/tickets pagine' ($tickets.Code -eq 200 -and $ticketsJson.content) "HTTP $($tickets.Code)"
 
-$ticketsSaison = Invoke-Api -Method GET -Path '/api/tickets?saison=2026A&page=0&size=5' -Token $tok
-Check 'GET /api/tickets?saison=2026A' ($ticketsSaison.Code -eq 200) "HTTP $($ticketsSaison.Code)"
+$ticketsSaison = Invoke-Api -Method GET -Path '/api/tickets?saison=2027A&page=0&size=5' -Token $tok
+Check 'GET /api/tickets?saison=2027A' ($ticketsSaison.Code -eq 200) "HTTP $($ticketsSaison.Code)"
 
 $ticketsVide = Invoke-Api -Method GET -Path '/api/tickets?saison=1900Z&page=0&size=5' -Token $tok
 $ticketsVideJson = $ticketsVide.Body | ConvertFrom-Json
 Check 'filtre saison sans resultat' ($ticketsVide.Code -eq 200 -and [int]$ticketsVideJson.totalElements -eq 0) "HTTP $($ticketsVide.Code) total=$($ticketsVideJson.totalElements)"
 
-$csv = Invoke-Api -Method GET -Path '/api/export/tickets.csv?saison=2026A' -Token $tok -Accept 'text/csv'
+$csv = Invoke-Api -Method GET -Path '/api/export/tickets.csv?saison=2027A' -Token $tok -Accept 'text/csv'
 Check 'export CSV filtre par saison' ($csv.Code -eq 200 -and $csv.Body -match 'Saison') "HTTP $($csv.Code)"
 
 $csvRefuse = Invoke-Api -Method GET -Path '/api/export/tickets.csv' -Token $tok -Accept 'application/json'

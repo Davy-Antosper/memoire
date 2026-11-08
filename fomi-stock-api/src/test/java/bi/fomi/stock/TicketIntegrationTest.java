@@ -89,7 +89,7 @@ class TicketIntegrationTest extends BaseIntegrationTest {
                 "montantPaye", 100000,
                 "datePaiement", "2026-03-01",
                 "depotRetraitId", 6,
-                "saison", "2026A"));
+                "saison", "2027A"));
         assertThat(code(result)).isEqualTo(200);
         JsonNode created = node(result);
         long id = created.get("id").asLong();
@@ -111,7 +111,7 @@ class TicketIntegrationTest extends BaseIntegrationTest {
                 "montantPaye", 50000,
                 "datePaiement", "2026-03-01",
                 "depotRetraitId", 6,
-                "saison", "2026A"));
+                "saison", "2027A"));
         assertThat(code(result)).isEqualTo(400);
     }
 
@@ -125,7 +125,7 @@ class TicketIntegrationTest extends BaseIntegrationTest {
                 "montantPaye", 50000,
                 "datePaiement", "2026-03-01",
                 "depotRetraitId", 6,
-                "saison", "2026A"));
+                "saison", "2027A"));
         assertThat(code(result)).isEqualTo(404);
     }
 
@@ -139,7 +139,7 @@ class TicketIntegrationTest extends BaseIntegrationTest {
                 "montantPaye", 50000,
                 "datePaiement", "2026-03-01",
                 "depotRetraitId", 999999,
-                "saison", "2026A"));
+                "saison", "2027A"));
         assertThat(code(result)).isEqualTo(404);
     }
 
@@ -153,7 +153,7 @@ class TicketIntegrationTest extends BaseIntegrationTest {
                 "montantPaye", 0,
                 "datePaiement", "2026-03-01",
                 "depotRetraitId", 6,
-                "saison", "2026A"));
+                "saison", "2027A"));
         assertThat(code(result)).isEqualTo(400);
     }
 
@@ -168,7 +168,7 @@ class TicketIntegrationTest extends BaseIntegrationTest {
                 "montantPaye", 100000,
                 "datePaiement", "2026-03-01",
                 "depotRetraitId", 6,
-                "saison", "2026A"));
+                "saison", "2027A"));
         long id = node(create).get("id").asLong();
 
         MvcResult update = apiPut("/api/tickets/" + id, token, Map.of(
@@ -179,7 +179,7 @@ class TicketIntegrationTest extends BaseIntegrationTest {
                 "montantPaye", 175000,
                 "datePaiement", "2026-03-10",
                 "depotRetraitId", 4,
-                "saison", "2026A"));
+                "saison", "2027A"));
         assertThat(code(update)).isEqualTo(200);
         JsonNode updated = node(update);
         assertThat(updated.get("quantiteCommandee").asInt()).isEqualTo(7);
@@ -197,7 +197,7 @@ class TicketIntegrationTest extends BaseIntegrationTest {
                 "montantPaye", 200000,
                 "datePaiement", "2026-03-01",
                 "depotRetraitId", 6,
-                "saison", "2026A"));
+                "saison", "2027A"));
         assertThat(code(result)).isEqualTo(400);
     }
 
@@ -211,7 +211,7 @@ class TicketIntegrationTest extends BaseIntegrationTest {
                 "montantPaye", 50000,
                 "datePaiement", "2026-03-01",
                 "depotRetraitId", 6,
-                "saison", "2026A"));
+                "saison", "2027A"));
         assertThat(code(result)).isEqualTo(403);
     }
 }

@@ -104,7 +104,7 @@ class AlerteIntegrationTest extends BaseIntegrationTest {
                 "montantPaye", 200 * 31000L,
                 "datePaiement", "2026-04-01",
                 "depotRetraitId", 8,
-                "saison", "2026A")))).isEqualTo(200);
+                "saison", "2027A")))).isEqualTo(200);
 
         assertThat(code(apiPost("/api/mouvements/reception", token, Map.of(
                 "lotId", 1,

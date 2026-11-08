@@ -94,7 +94,7 @@ class SecuriteRbacIntegrationTest extends BaseIntegrationTest {
                 "montantPaye", 50000,
                 "datePaiement", "2026-03-15",
                 "depotRetraitId", 6,
-                "saison", "2026A"));
+                "saison", "2027A"));
         assertThat(code(result)).isEqualTo(200);
     }
 
@@ -108,7 +108,7 @@ class SecuriteRbacIntegrationTest extends BaseIntegrationTest {
                 "montantPaye", 50000,
                 "datePaiement", "2026-03-15",
                 "depotRetraitId", 6,
-                "saison", "2026A"));
+                "saison", "2027A"));
         assertThat(code(result)).isEqualTo(403);
     }
 

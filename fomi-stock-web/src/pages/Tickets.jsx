@@ -227,7 +227,7 @@ export default function Tickets() {
         <input
           value={saison}
           onChange={(e) => { setSaison(e.target.value); setPage(0) }}
-          placeholder="Filtrer par saison (ex : 2026A)"
+          placeholder="Filtrer par saison (ex : 2027A)"
           style={{ maxWidth: 240 }}
         />
         <span className="muted">{data.totalElements} ticket(s)</span>
@@ -262,7 +262,7 @@ export default function Tickets() {
               </select>
             </Field>
             <Field label="Saison">
-              <input value={form.saison || ''} onChange={set('saison')} placeholder="2026A" required />
+              <input value={form.saison || ''} onChange={set('saison')} placeholder="2027A" required />
             </Field>
             <Field label="Superficie (ha, optionnel)">
               <input type="number" min="0" step="0.01" value={form.superficieHa ?? ''} onChange={set('superficieHa')} placeholder="Héritée de l’agriculteur si vide" />

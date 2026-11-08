@@ -130,7 +130,7 @@ class StockConcurrenceIntegrationTest {
                 "montantPaye", quantite * 25000L,
                 "datePaiement", "2026-04-01",
                 "depotRetraitId", 1,
-                "saison", "2026A"));
+                "saison", "2027A"));
         assertThat(result.getResponse().getStatus()).isEqualTo(200);
         long id = om(result).get("id").asLong();
         MvcResult activate = mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders

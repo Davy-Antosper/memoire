@@ -19,7 +19,7 @@ class DistributionFifoIntegrationTest extends BaseIntegrationTest {
                 "montantPaye", quantite * 25000L,
                 "datePaiement", "2026-04-01",
                 "depotRetraitId", depotId,
-                "saison", "2026A"));
+                "saison", "2027A"));
         assertThat(code(result)).isEqualTo(200);
         long id = node(result).get("id").asLong();
         assertThat(code(apiPatch("/api/tickets/" + id + "/activer", token))).isEqualTo(200);
