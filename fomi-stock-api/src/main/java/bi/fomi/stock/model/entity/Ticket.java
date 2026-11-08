@@ -107,6 +107,8 @@ public class Ticket {
                 || statut == StatutTicket.EXPIRE) {
             return;
         }
+        // Un ticket en arriéré conserve le reliquat dû : la distribution d'une
+        // partie du reliquat doit le faire repasser en PARTIEL, puis SERVI.
         if (quantiteServie == 0) {
             return;
         }

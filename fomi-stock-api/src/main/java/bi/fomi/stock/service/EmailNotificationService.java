@@ -123,6 +123,7 @@ public class EmailNotificationService {
             case "TICKET_VALIDE" -> "ticket validé";
             case "TICKET_REJETE" -> "ticket rejeté";
             case "TICKET_EXPIRE" -> "ticket expiré";
+            case "TICKET_ARRIERE" -> "ticket en arriéré";
             case "DISTRIBUTION" -> "distribution enregistrée";
             default -> evenement;
         };

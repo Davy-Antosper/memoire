@@ -46,7 +46,8 @@ public class DistributionService {
 
         verifierPerimetreAgent(agent, depot);
 
-        if (!List.of(StatutTicket.ACTIF, StatutTicket.PAYE, StatutTicket.EN_ATTENTE, StatutTicket.PARTIEL)
+        if (!List.of(StatutTicket.ACTIF, StatutTicket.PAYE, StatutTicket.EN_ATTENTE,
+                StatutTicket.PARTIEL, StatutTicket.ARRIERE)
                 .contains(ticket.getStatut())) {
             throw new BusinessException("Distribution impossible : statut du ticket = " + ticket.getStatut());
         }

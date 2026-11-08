@@ -46,7 +46,7 @@ class DepotIntegrationTest extends BaseIntegrationTest {
             if ("IMBURA".equals(s.get("engraisCode").asText())) {
                 assertThat(s.get("quantiteDisponible").asInt()).isEqualTo(1500);
             }
-            if ("TOTAHAZA".equals(s.get("engraisCode").asText())) {
+            if ("UREE".equals(s.get("engraisCode").asText())) {
                 assertThat(s.get("quantiteDisponible").asInt()).isEqualTo(800);
             }
             if ("DOLOMIE".equals(s.get("engraisCode").asText())) {

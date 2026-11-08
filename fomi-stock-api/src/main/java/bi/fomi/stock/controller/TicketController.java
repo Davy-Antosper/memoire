@@ -53,12 +53,12 @@ public class TicketController {
     }
 
     /**
-     * Clôture une saison : expire les tickets non entièrement servis et notifie
-     * les agriculteurs concernés.
+     * Clôture une saison : les tickets non entièrement servis passent en
+     * arriéré (reliquat dû à l'agriculteur) et les agriculteurs sont notifiés.
      */
     @PostMapping("/expirer")
     public java.util.Map<String, Object> expirer(@RequestParam String saison) {
         int expires = ticketService.expirerTickets(saison);
-        return java.util.Map.of("saison", saison, "ticketsExpires", expires);
+        return java.util.Map.of("saison", saison, "ticketsArrieres", expires);
     }
 }

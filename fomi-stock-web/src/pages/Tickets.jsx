@@ -9,6 +9,7 @@ const STATUT_TONES = {
   ACTIF: 'green',
   REJETE: 'red',
   EXPIRE: 'neutral',
+  ARRIERE: 'red',
   PAYE: 'green',
   EN_ATTENTE: 'neutral',
   PARTIEL: 'amber',

@@ -29,10 +29,21 @@ export default function Depots() {
   const [msg, setMsg] = useState('')
   const [form, set, setAll] = useForm(EMPTY_FORM)
 
+  // Seuils d'alerte par produit : le seuil du dépôt n'est qu'un repli.
+  const [engraisTypes, setEngraisTypes] = useState([])
+  const [seuils, setSeuils] = useState([])
+  const [seuilDraft, setSeuilDraft] = useState({})
+  const [seuilSaving, setSeuilSaving] = useState(null)
+  const [seuilMsg, setSeuilMsg] = useState('')
+  const [seuilError, setSeuilError] = useState('')
+
   useEffect(() => {
     api.get('/api/depots')
       .then((r) => setDepots(r.data))
       .catch((e) => setError(errorMessage(e)))
+    api.get('/api/engrais-types')
+      .then((r) => setEngraisTypes(r.data))
+      .catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -69,9 +80,88 @@ export default function Depots() {
   function openDepot(depot) {
     setSelected(depot)
     setStock(null)
+    setSeuils([])
+    setSeuilDraft({})
+    setSeuilMsg('')
+    setSeuilError('')
     api.get(`/api/depots/${depot.id}/stock`)
       .then((r) => setStock(r.data))
       .catch((e) => setError(errorMessage(e)))
+    chargerSeuils(depot.id)
+  }
+
+  function chargerSeuils(depotId) {
+    api.get('/api/seuils-alerte', { params: { depotId } })
+      .then((r) => {
+        setSeuils(r.data)
+        setSeuilDraft(Object.fromEntries(r.data.map((s) => [s.engraisTypeId, s.seuilMin])))
+      })
+      .catch((e) => setSeuilError(errorMessage(e)))
+  }
+
+  async function enregistrerSeuil(engraisTypeId) {
+    const depot = selected
+    if (!depot) return
+    const valeur = Number(seuilDraft[engraisTypeId])
+    if (!Number.isFinite(valeur) || valeur < 0) {
+      setSeuilError("Le seuil doit être un nombre positif (en sacs de 25 kg).")
+      return
+    }
+    const existant = seuils.find((s) => s.engraisTypeId === engraisTypeId)
+    setSeuilSaving(engraisTypeId)
+    setSeuilError('')
+    setSeuilMsg('')
+    try {
+      const payload = {
+        depotId: depot.id,
+        engraisTypeId,
+        seuilMin: valeur,
+        criticite: existant?.criticite || 'WARNING'
+      }
+      const { data } = existant
+        ? await api.put(`/api/seuils-alerte/${existant.id}`, payload)
+        : await api.post('/api/seuils-alerte', payload)
+      setSeuils((prev) => {
+        const autres = prev.filter((s) => s.engraisTypeId !== engraisTypeId)
+        return [...autres, data].sort((a, b) => a.engraisTypeCode.localeCompare(b.engraisTypeCode))
+      })
+      setSeuilDraft((prev) => ({ ...prev, [engraisTypeId]: data.seuilMin }))
+      setSeuilMsg(`Seuil du produit mis à jour : ${valeur} sacs`)
+      // Le tableau de stock affiche le seuil effectif : on le recharge.
+      api.get(`/api/depots/${depot.id}/stock`)
+        .then((r) => setStock(r.data))
+        .catch(() => {})
+    } catch (err) {
+      setSeuilError(errorMessage(err))
+    } finally {
+      setSeuilSaving(null)
+    }
+  }
+
+  async function supprimerSeuil(seuil) {
+    if (!window.confirm(`Retirer le seuil propre à ${seuil.engraisTypeCode} ? Le dépôt appliquera de nouveau son seuil par défaut (${selected.seuilAlerteMin} sacs).`)) {
+      return
+    }
+    setSeuilSaving(seuil.engraisTypeId)
+    setSeuilError('')
+    setSeuilMsg('')
+    try {
+      await api.delete(`/api/seuils-alerte/${seuil.id}`)
+      setSeuils((prev) => prev.filter((s) => s.id !== seuil.id))
+      setSeuilDraft((prev) => {
+        const copie = { ...prev }
+        delete copie[seuil.engraisTypeId]
+        return copie
+      })
+      setSeuilMsg(`Seuil propre à ${seuil.engraisTypeCode} retiré`)
+      api.get(`/api/depots/${selected.id}/stock`)
+        .then((r) => setStock(r.data))
+        .catch(() => {})
+    } catch (err) {
+      setSeuilError(errorMessage(err))
+    } finally {
+      setSeuilSaving(null)
+    }
   }
 
   function closeForm() {
@@ -260,6 +350,85 @@ export default function Depots() {
               </tbody>
             </table>
           )}
+        </div>
+      )}
+
+      {selected && (
+        <div className="card">
+          <h2>Seuils d'alerte par produit — {selected.code}</h2>
+          <p className="section-sub">
+            Un seuil propre à chaque engrais, en sacs de 25 kg. En l'absence de seuil
+            spécifique, le dépôt applique son seuil par défaut ({selected.seuilAlerteMin} sacs).
+          </p>
+          <SuccessBox message={seuilMsg} />
+          <ErrorBox message={seuilError} />
+          <table>
+            <thead>
+              <tr>
+                <th>Engrais</th>
+                <th className="num">Seuil appliqué</th>
+                <th>Origine</th>
+                <th className="num">Nouveau seuil (sacs)</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {engraisTypes.length === 0 && <tr><td colSpan={5}><Empty /></td></tr>}
+              {engraisTypes.map((e) => {
+                const propre = seuils.find((s) => s.engraisTypeId === e.id)
+                const applique = propre ? propre.seuilMin : selected.seuilAlerteMin
+                const busy = seuilSaving === e.id
+                const canEditSeuil = user.role === 'ADMIN'
+                return (
+                  <tr key={e.id}>
+                    <td>
+                      <strong>{e.code}</strong>
+                      <div className="section-sub" style={{ margin: 0 }}>{e.nom}</div>
+                    </td>
+                    <td className="num">{applique}</td>
+                    <td>
+                      {propre
+                        ? <Badge tone="amber">Propre au produit</Badge>
+                        : <Badge tone="neutral">Défaut du dépôt</Badge>}
+                    </td>
+                    <td className="num">
+                      <input
+                        type="number"
+                        min="0"
+                        style={{ width: 90 }}
+                        value={seuilDraft[e.id] ?? ''}
+                        placeholder={String(applique)}
+                        disabled={busy || !canEditSeuil}
+                        onChange={(ev) => setSeuilDraft((prev) => ({ ...prev, [e.id]: ev.target.value }))}
+                      />
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        {canEditSeuil ? (
+                          <>
+                            <button
+                              className="btn outline"
+                              disabled={busy || seuilDraft[e.id] === undefined || seuilDraft[e.id] === ''}
+                              onClick={() => enregistrerSeuil(e.id)}
+                            >
+                              {propre ? 'Modifier' : 'Définir'}
+                            </button>
+                            {propre && (
+                              <button className="btn danger" disabled={busy} onClick={() => supprimerSeuil(propre)}>
+                                Retirer
+                              </button>
+                            )}
+                          </>
+                        ) : (
+                          <span className="section-sub" style={{ margin: 0 }}>Lecture seule</span>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
         </div>
       )}
     </>

@@ -43,15 +43,15 @@ class LotIntegrationTest extends BaseIntegrationTest {
     @Test
     void adminCreeUnLot() throws Exception {
         MvcResult result = apiPost("/api/lots", tokenAdmin(), Map.of(
-                "numeroLot", "LOT-TOTAHAZA-2026-002",
+                "numeroLot", "LOT-UREE-2026-002",
                 "engraisTypeId", 2,
                 "quantiteInitiale", 1000,
                 "dateFabrication", "2026-07-01",
                 "datePeremption", "2027-07-01"));
         assertThat(code(result)).isEqualTo(200);
         JsonNode lot = node(result);
-        assertThat(lot.get("numeroLot").asText()).isEqualTo("LOT-TOTAHAZA-2026-002");
-        assertThat(lot.get("engraisTypeCode").asText()).isEqualTo("TOTAHAZA");
+        assertThat(lot.get("numeroLot").asText()).isEqualTo("LOT-UREE-2026-002");
+        assertThat(lot.get("engraisTypeCode").asText()).isEqualTo("UREE");
     }
 
     @Test

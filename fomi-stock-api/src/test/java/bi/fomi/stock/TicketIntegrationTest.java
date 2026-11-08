@@ -183,7 +183,7 @@ class TicketIntegrationTest extends BaseIntegrationTest {
         assertThat(code(update)).isEqualTo(200);
         JsonNode updated = node(update);
         assertThat(updated.get("quantiteCommandee").asInt()).isEqualTo(7);
-        assertThat(updated.get("engraisTypeCode").asText()).isEqualTo("TOTAHAZA");
+        assertThat(updated.get("engraisTypeCode").asText()).isEqualTo("UREE");
         assertThat(updated.get("depotRetraitCode").asText()).isEqualTo("DEP-GIT-Z");
     }
 

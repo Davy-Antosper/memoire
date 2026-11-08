@@ -81,7 +81,8 @@ public class AlerteService {
 
         long demande = ticketRepository
                 .findNonServisByDepot(depot.getId(), List.of(StatutTicket.PAYE, StatutTicket.EN_ATTENTE,
-                        StatutTicket.PARTIEL, StatutTicket.ACTIF, StatutTicket.EN_ATTENTE_DE_VALIDATION))
+                        StatutTicket.PARTIEL, StatutTicket.ACTIF, StatutTicket.EN_ATTENTE_DE_VALIDATION,
+                        StatutTicket.ARRIERE))
                 .stream()
                 .filter(t -> t.getEngraisType().getId().equals(engraisType.getId()))
                 .mapToLong(t -> t.getQuantiteCommandee() - t.getQuantiteServie())
@@ -98,7 +99,7 @@ public class AlerteService {
         List<Ticket> enRetard = ticketRepository.findAll().stream()
                 .filter(t -> t.getQuantiteServie() < t.getQuantiteCommandee())
                 .filter(t -> switch (t.getStatut()) {
-                    case ANNULE, REJETE, EXPIRE -> false;
+                    case ANNULE, REJETE, EXPIRE, ARRIERE -> false;
                     default -> true;
                 })
                 .filter(t -> ChronoUnit.DAYS.between(t.getDatePaiement(), LocalDate.now()) > DELAI_JOURS)

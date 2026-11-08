@@ -16,6 +16,20 @@ API REST de gestion des stocks d'engrais FOMI : réceptions, transferts, distrib
 - Docker (pour les tests d'intégration)
 - PostgreSQL 16 en local (pour le mode dev)
 
+### Configurer JDK 21 (Windows)
+
+Si `mvn compile` échoue avec `release version 21 not supported`, Maven utilise un
+JDK 17. Indiquer le JDK 21 pour la session :
+
+```powershell
+$env:JAVA_HOME = 'C:\Program Files\Java\jdk-21'
+mvn -v   # doit afficher "Java version: 21"
+```
+
+Pour le rendre permanent : `setx JAVA_HOME "C:\Program Files\Java\jdk-21"` puis
+rouvrir le terminal. Si plusieurs JDK sont installés, vérifier aussi que
+`Path` pointe bien vers le `bin` du JDK 21.
+
 ## Installation et lancement
 
 ```bash
@@ -67,12 +81,13 @@ Les paramètres de connexion sont surchargeables avec `-Dfomi.test.db.url`, `-Df
 
 - **FIFO** : la distribution et le transfert consomment les lots dans l'ordre d'ancienneté de réception (`date_reception_fomi`), sauf si un `lotId` est forcé (contrôlé : type d'engrais et quantité disponibles).
 - **Concurrence** : les lectures-écritures de stock (`stock_lot`, `stock`), du lot et du ticket sont protégées par des verrous pessimistes (`PESSIMISTIC_WRITE`) — deux distributions/réceptions simultanées ne peuvent pas survendre ni perdre de mise à jour.
-- **Tickets** : un ticket `PAYE`/`EN_ATTENTE`/`PARTIEL` peut être servi tant qu'il reste une quantité ; un ticket `RECLAMATION`/`ANNULE` ou entièrement servi est refusé.
+- **Tickets** : un ticket `PAYE`/`EN_ATTENTE`/`PARTIEL`/`ARRIERE` peut être servi tant qu'il reste une quantité ; un ticket `ANNULE`/`REJETE`/`EXPIRE` ou entièrement servi est refusé.
+- **Arriérés** : à la clôture d'une saison, un ticket payé et non entièrement servi passe en `ARRIERE` (et non `EXPIRE`) : le reliquat reste dû et peut être servi lors d'une saison ultérieure, ou remboursé sur décision du ministère.
 - **Idempotence** : la réception accepte une `idempotencyKey` ; une clé déjà utilisée renvoie 400.
 - **Alertes** : générées automatiquement après réception/transfert/distribution — `RUPTURE` (stock 0), `STOCK_BAS` (sous le seuil du dépôt), `DEMANDE_SUP_STOCK` (demande non servie > stock) — et par la tâche planifiée quotidienne (06:00) pour les tickets impayés/servis partiellement depuis plus de 30 jours (`DELAI_DEPASSE`).
 - **Périmètres** : `AGENT_COLLINE` ne distribue que sur son dépôt ; `AGENT_ZONE` que dans sa zone ; réception et transfert réservés à `ADMIN`.
 - **Audit** : toute création de ticket/dépôt et tout mouvement/distribution/utilisateur est journalisé dans `audit_log`.
-- **Notifications email** : chaque changement d'état d'un ticket (`TICKET_CREE`, `TICKET_VALIDE`, `TICKET_REJETE`, `TICKET_EXPIRE`) et chaque distribution envoie un email à l'agriculteur s'il possède une adresse. L'envoi est tracé (`EMAIL_SEND` / `EMAIL_FAILED`) et reste non bloquant : une panne SMTP ne fait pas échouer l'opération métier.
+- **Notifications email** : chaque changement d'état d'un ticket (`TICKET_CREE`, `TICKET_VALIDE`, `TICKET_REJETE`, `TICKET_ARRIERE`) et chaque distribution envoie un email à l'agriculteur s'il possède une adresse. L'envoi est tracé (`EMAIL_SEND` / `EMAIL_FAILED`) et reste non bloquant : une panne SMTP ne fait pas échouer l'opération métier.
 
 ## Endpoints
 
@@ -120,7 +135,7 @@ lieu de résidence des agriculteurs ; seuls les dépôts `PROVINCE` (logistique)
 | PUT | `/api/tickets/{id}` | ADMIN, AGENT_ZONE |
 | PATCH | `/api/tickets/{id}/activer` | ADMIN, SUPERVISEUR |
 | PATCH | `/api/tickets/{id}/rejeter` | ADMIN, SUPERVISEUR |
-| POST | `/api/tickets/expirer?saison=...` | ADMIN, SUPERVISEUR |
+| POST | `/api/tickets/expirer?saison=...` | ADMIN, SUPERVISEUR — clôt la saison : arriéré pour les tickets validés non servis, expiration pour ceux jamais validés |
 
 ### Dépôts
 | Méthode | URL | Rôles |

@@ -104,13 +104,34 @@ class EmailNotificationIntegrationTest extends BaseIntegrationTest {
                 "datePaiement", "2026-04-04",
                 "depotRetraitId", 1,
                 "saison", "2026EX"))).get("id").asLong();
+        assertThat(code(apiPatch("/api/tickets/" + id + "/activer", token))).isEqualTo(200);
 
         MvcResult expiration = apiPost("/api/tickets/expirer?saison=2026EX", token, Map.of());
         assertThat(code(expiration)).isEqualTo(200);
-        assertThat(node(expiration).get("ticketsExpires").asInt()).isEqualTo(1);
+        assertThat(node(expiration).get("ticketsArrieres").asInt()).isEqualTo(1);
+        assertThat(node(apiGet("/api/tickets/" + id, token)).get("statut").asText()).isEqualTo("ARRIERE");
+        verify(mailSenderPort).envoyer(eq("jean.ndayisaba@example.bi"),
+                contains("TKT-EMAIL-EXPIRE"), contains("est maintenant : ARRIERE"));
+    }
+
+    @Test
+    void ticketJamaisValideExpireSansArriere() throws Exception {
+        String token = tokenAdmin();
+        long id = node(apiPost("/api/tickets", token, Map.of(
+                "numeroTicket", "TKT-EMAIL-NONVALIDE",
+                "agriculteurId", 1,
+                "engraisTypeId", 2,
+                "quantiteCommandee", 1,
+                "montantPaye", 25000,
+                "datePaiement", "2026-04-05",
+                "depotRetraitId", 1,
+                "saison", "2026NV"))).get("id").asLong();
+
+        MvcResult expiration = apiPost("/api/tickets/expirer?saison=2026NV", token, Map.of());
+        assertThat(code(expiration)).isEqualTo(200);
         assertThat(node(apiGet("/api/tickets/" + id, token)).get("statut").asText()).isEqualTo("EXPIRE");
         verify(mailSenderPort).envoyer(eq("jean.ndayisaba@example.bi"),
-                contains("TKT-EMAIL-EXPIRE"), contains("est maintenant : EXPIRE"));
+                contains("TKT-EMAIL-NONVALIDE"), contains("est maintenant : EXPIRE"));
     }
 
     @Test

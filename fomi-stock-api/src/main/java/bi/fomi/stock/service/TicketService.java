@@ -185,17 +185,33 @@ public class TicketService {
     @Transactional
     public int expirerTickets(String saison) {
         List<Ticket> tickets = ticketRepository.findBySaisonAndStatutNotIn(saison,
-                List.of(StatutTicket.ANNULE, StatutTicket.REJETE, StatutTicket.EXPIRE, StatutTicket.SERVI));
+                List.of(StatutTicket.ANNULE, StatutTicket.REJETE, StatutTicket.EXPIRE, StatutTicket.ARRIERE,
+                StatutTicket.SERVI));
         int expires = 0;
         for (Ticket ticket : tickets) {
-            if (ticket.getQuantiteServie() < ticket.getQuantiteCommandee()) {
+            if (ticket.getQuantiteServie() >= ticket.getQuantiteCommandee()) {
+                continue;
+            }
+            if (ticket.getStatut() == StatutTicket.EN_ATTENTE_DE_VALIDATION) {
+                // Le ticket n'a jamais été validé : aucun droit n'a été reconnu,
+                // la demande est donc close sans arriéré.
                 ticket.setStatut(StatutTicket.EXPIRE);
                 auditLogService.log("TICKET_EXPIRE", "Ticket", ticket.getId(),
                         "{\"numero\":\"" + ticket.getNumeroTicket() + "\",\"saison\":\"" + saison + "\"}");
                 emailNotificationService.notifierTicket(ticket, "TICKET_EXPIRE",
-                        "La saison " + saison + " est clôturée : votre ticket n'a pas été entièrement servi.");
-                expires++;
+                        "La saison " + saison + " est clôturée : votre demande n'a pas été validée.");
+            } else {
+                // Le droit a été reconnu et payé : le reliquat reste dû,
+                // c'est un arriéré et non une perte de droit.
+                ticket.setStatut(StatutTicket.ARRIERE);
+                auditLogService.log("TICKET_ARRIERE", "Ticket", ticket.getId(),
+                        "{\"numero\":\"" + ticket.getNumeroTicket() + "\",\"saison\":\"" + saison + "\"}");
+                emailNotificationService.notifierTicket(ticket, "TICKET_ARRIERE",
+                        "La saison " + saison + " est clôturée : votre ticket n'a pas été entièrement servi. "
+                                + "Le reliquat reste dû et sera servi lors d'une prochaine saison, "
+                                + "ou remboursé sur décision du ministère.");
             }
+            expires++;
         }
         return expires;
     }

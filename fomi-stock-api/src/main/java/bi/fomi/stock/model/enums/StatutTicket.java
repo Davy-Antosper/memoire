@@ -5,6 +5,7 @@ public enum StatutTicket {
     ACTIF,
     REJETE,
     EXPIRE,
+    ARRIERE,
     PAYE,
     EN_ATTENTE,
     PARTIEL,
