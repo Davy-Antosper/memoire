@@ -1,6 +1,6 @@
 # Mémoire de session
 
-Dernière mise à jour : 13 août 2026
+Dernière mise à jour : 08 novembre 2026
 
 ## Contexte
 - Projet : création d'un mémoire PDF (~100 pages) sur le système de gestion et de traçabilité des stocks d'engrais FOMI au Burundi.
@@ -37,6 +37,7 @@ SÉCURITÉ : token GitHub exposé dans fomi.txt — utilisateur doit le révoque
 - Générer le PDF (pandoc/LaTeX ou weasyprint).
 
 ## Mise à jour du 01/11/2026 — rapport de stage au format canevas
+*(section historique : les compteurs ci-dessous sont périmés, voir la mise à jour du 08/11/2026)*
 - Espace de travail réel : `C:\Users\BOBO SIMON AKIDZ\Desktop\memoire` (Windows, Python 3.12, python-docx 1.2.0).
 - Le canevas du professeur est `CANEVAS POUR LA REDACTION DU RAPPORT DE STAGE.docx`.
 - Le rapport conforme au canevas est `Rapport_stage_FOMI_canevas.docx`.
@@ -72,3 +73,5 @@ SÉCURITÉ : token GitHub exposé dans fomi.txt — utilisateur doit le révoque
 - Front : thème clair/sombre persistant (`fomi_theme`), script anti-flash dans `index.html`, adaptation de toutes les pages, cascade Province → Commune → Zone dans `Depots.jsx`.
 - Tests : 218 tests JUnit (0 échec) et 29 vérifications E2E (`scripts/e2e_api.ps1`, 0 échec).
 - Documentation : `Rapport_stage_FOMI_canevas.docx` aligné (17 tables, 13 migrations, 65 endpoints, deux niveaux de dépôt) via `update_docx_model.py`, intégré à `build_rapport.py`.
+- Figures : sources PlantUML versionnées dans `memoire_assets/puml_src/`, régénérées avec PlantUML 1.2024.8 (commune dans le diagramme de classes et le modèle ER, circuit à deux niveaux, collines sans dépôt) puis réinjectées par `update_docx_diagrams.py`.
+- PDF : `Rapport_stage_FOMI_canevas.pdf` réexporté depuis le DOCX avec LibreOffice 26.8 (73 pages) ; il ne contient plus aucun compteur périmé.
